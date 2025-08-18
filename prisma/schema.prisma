@@ -10,9 +10,9 @@ datasource db {
 
 model cliente {
   cli_id         String          @id @db.Char(8)
-  cli_tipo       String          @default("") @db.VarChar(50)
   cli_nombre     String?         @db.VarChar(250)
   cli_apellido   String?         @db.VarChar(250)
+  cli_tipo       String          @default("") @db.VarChar(50)
   cli_razonsoci  String?         @db.VarChar(250)
   cli_dni        String?         @db.Char(8)
   cli_ruc        String?         @db.Char(20)
@@ -151,6 +151,7 @@ model servicio {
   serv_id     Int        @id @default(autoincrement())
   serv_nombre String?    @db.VarChar(250)
   serv_precio Decimal    @db.Decimal(20, 6)
+  serv_tipo   String?    @db.VarChar(150)
   contrato    contrato[]
   deuda       deuda[]
 }
@@ -218,7 +219,7 @@ model comprobante_pago {
   id_tipo_compro   Int?
   serie            String?           @db.Char(4)
   correlativo      Int?
-  fecha_emision    DateTime?         @db.Timestamp(0)
+  fecha_emision    DateTime          @default(dbgenerated("(now())")) @db.Timestamp(0)
   monto_total      Decimal?          @db.Decimal(10, 6)
   medio_pago       String?           @db.VarChar(50)
   estado           String?           @db.VarChar(50)
@@ -246,15 +247,17 @@ model detalle_pago {
 }
 
 model deuda {
-  id_deuda    Int      @id @default(autoincrement())
-  ano_mes     String?  @db.Char(50)
-  descripcion String?  @db.VarChar(150)
-  monto       Decimal? @db.Decimal(10, 2)
-  estado      String?  @db.VarChar(50)
-  id_servicio Int
-  num_con     String   @db.Char(10)
-  contrato    contrato @relation(fields: [num_con], references: [num_con], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_contrato")
-  servicio    servicio @relation(fields: [id_servicio], references: [serv_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_servicio")
+  id_deuda        Int       @id @default(autoincrement())
+  ano_mes         String?   @db.Char(50)
+  descripcion     String?   @db.VarChar(150)
+  monto           Decimal?  @db.Decimal(10, 2)
+  saldo_pendiente Decimal?  @db.Decimal(10, 2)
+  fecha_creacion  DateTime? @db.Date
+  estado          String?   @db.VarChar(50)
+  id_servicio     Int
+  num_con         String    @db.Char(10)
+  contrato        contrato  @relation(fields: [num_con], references: [num_con], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_contrato")
+  servicio        servicio  @relation(fields: [id_servicio], references: [serv_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_servicio")
 
   @@index([num_con], map: "FK_deuda_contrato")
   @@index([id_servicio], map: "FK_deuda_servicio")

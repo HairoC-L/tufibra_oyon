@@ -58,7 +58,7 @@ export default function LoginPage() {
       {/* Imagen de fondo */}
       <div className="absolute inset-0 z-0">
         <img
-          src="/fondo.png"
+          src="/fondo.webp"
           alt="Fondo"
           className="w-full h-full object-cover"
         />
@@ -73,7 +73,7 @@ export default function LoginPage() {
         <div className="hidden lg:flex flex-col items-center justify-center w-1/2 space-y-6 text-white">
           <h1 className="text-5xl text-opacity-80 text-white font-bold fade-down">¡Bienvenido!</h1>
           <img
-            src="/tufibra_logo.png"
+            src="/tufibra_logo.webp"
             alt="Logo Tufibra"
             className="w-24 sm:w-28 md:w-32 lg:w-56 xl:w-64 h-auto mx-auto fade-up"
           />
@@ -83,7 +83,7 @@ export default function LoginPage() {
           <div className="text-center space-y-2 lg:hidden">
             <h1 className="text-3xl font-bold text-white text-opacity-80 fade-down">¡Bienvenido!</h1>
             <img
-              src="/tufibra_logo.png"
+              src="/tufibra_logo.webp"
               alt="Logo Tufibra"
               className="w-28 sm:w-32 md:w-36 h-auto mx-auto fade-up"
             />

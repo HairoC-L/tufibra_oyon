@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Search, Edit, Eye, Phone, Mail, MapPin, Calendar, Wrench, User } from "lucide-react"
 
-
 type Especialidad = {
   esp_id: number
   esp_nombre: string
@@ -40,8 +39,6 @@ export default function TechniciansPage() {
 
   const [showNotification, setShowNotification] = useState(false);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
@@ -128,14 +125,8 @@ export default function TechniciansPage() {
     }
   };
 
-
-
-
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [filteredTechnicians, setFilteredTechnicians] = useState<Technician[]>([]); // Para aplicar filtros si usas
-
-
-
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -176,7 +167,6 @@ export default function TechniciansPage() {
               <p className="text-sm text-gray-300">Administra el equipo de técnicos de campo</p>
             </div>
           </header>
-
           {showNotification && (
             <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50 transition-opacity duration-300">
               ¡Técnico creado!
@@ -330,29 +320,7 @@ export default function TechniciansPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Buscar técnicos..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-gray-700/50 border-gray-600 text-white"
-                    />
-                  </div>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-48 bg-gray-700/50 border-gray-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="Disponible">Disponible</SelectItem>
-                      <SelectItem value="En Campo">En Campo</SelectItem>
-                      <SelectItem value="Ocupado">Ocupado</SelectItem>
-                      <SelectItem value="Descanso">Descanso</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
 
                 <div className="rounded-md border border-gray-700 bg-gray-800/30">
                   <Table>

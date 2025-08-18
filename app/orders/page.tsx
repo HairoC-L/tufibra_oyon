@@ -206,7 +206,7 @@ export default function OrdersPage() {
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      //order.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.type.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = filterStatus === "all" || order.status === filterStatus

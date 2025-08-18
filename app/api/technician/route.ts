@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
 
     const technician = await prisma.tecnico.create({
       data: {
+        tec_id: user.usu_id,
         tec_estado: "Disponible",
         tec_id_especialidad: esp_id,
         usuario_usu_id: user.usu_id,

@@ -26,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { num_con: str
       ano_mes: d.ano_mes ?? '',
       descripcion: d.descripcion ?? '',
       monto: Number(d.monto ?? 0),
+      num_con: num_con,
     }));
 
     return NextResponse.json(formatted);

@@ -8,7 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Cable Digital",
+  title: "Tu Fibra Digital",
   description: "Sistema para gestionar órdenes de trabajo",
   generator: 'Hairo'
 }

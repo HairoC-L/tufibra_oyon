@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
-import { PieChart, Pie, Cell, Tooltip, Legend, LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Legend, Bar, LineChart, Line, XAxis, YAxis, ResponsiveContainer, CartesianGrid, BarChart } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BarChart3, Users, Clock, CheckCircle, Calendar } from "lucide-react"
+import { BarChart3, Users, User, Building, Clock, CheckCircle, Calendar } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 
@@ -17,6 +17,41 @@ type OrderByType = {
   count: number
   color: string
 }
+
+interface Client {
+  cli_id: string
+  cli_tipo: string
+  cli_nombre: string
+  cli_apellido: string
+  cli_razonsoci: string
+  cli_dni: string
+  cli_ruc: string
+  cli_direccion: string
+  cli_coordenada: string
+  cli_cel: string
+  num_con: string
+  id_serv: string
+  serv_nombre: string
+  fecha_registro: string
+  fecha_inicio: string
+  estado: string
+  usu_nombre: string
+  id_caja: string
+  id_nodo: number
+}
+
+type PieDataItem = {
+  type: string;
+  count: number;
+  color: string;
+};
+
+type NodoData = {
+  nodo: string;
+  cantidad: number;
+};
+
+
 
 //Para el grafico torta
 const filters = [
@@ -44,7 +79,68 @@ export default function DashboardPage() {
   const [typeFilter, setTypeFilter] = useState('INSTALACION')
   const [rangeFilter, setRangeFilter] = useState('week')
   const [chartData, setChartData] = useState([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [cantidaxservicio, setcantidaxservicio] = useState<PieDataItem[]>([]);
 
+
+  const [cantidaxnodo, setcantidaxnodo] = useState<NodoData[]>([]);
+
+
+
+  const COLORS = [
+    '#0088FE', '#00C49F', '#FFBB28', '#FF8042',
+    '#AF19FF', '#FF4560', '#00B8D9', '#FF66C3'
+  ];
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await fetch('/api/dashboard/cantidadxnodo');
+      const result = await res.json();
+      setcantidaxnodo(result);
+    };
+
+    fetchData();
+  }, []);
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await fetch('/api/dashboard/cantidadxservicio');
+      const result = await res.json();
+
+
+
+      const pieData: PieDataItem[] = result.map((item: any, index: number) => ({
+        type: item.type,
+        count: item.count,
+        color: COLORS[index % COLORS.length], // asignar color ciclicamente
+      }));
+
+      setcantidaxservicio(pieData);
+    };
+
+    fetchData();
+  }, []);
+
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+  const fetchClients = async () => {
+    try {
+      const res = await fetch("/api/cliente/clienteContrato");
+      if (!res.ok) {
+        console.error("Error al obtener información de los clientes:", res.status);
+        return;
+      }
+
+      const data = await res.json();
+      setClients(data);
+    } catch (err) {
+      console.error("Error parsing JSON:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,29 +157,7 @@ export default function DashboardPage() {
     setUsername(localStorage.getItem("username") || "")
   }, [])
 
-  const dashboardData = {
-    totalOrders: 1247,
-    pendingOrders: 89,
-    completedOrders: 1158,
-    inProgressOrders: 45,
-    todayOrders: 23,
-    technicians: 15,
-    clients: 342,
-    //efficiency: 94.2,
-  }
 
-
-
-
-
-  const [filter, setFilter] = useState('day')
-  const [data, setData] = useState<OrderByType[]>([])
-
-  useEffect(() => {
-    fetch(`/api/ordenTrabajo/cantidad_tipo_dash?filter=${filter}`)
-      .then((res) => res.json())
-      .then(setData)
-  }, [filter])
 
   const [hasMounted, setHasMounted] = useState(false)
 
@@ -92,46 +166,6 @@ export default function DashboardPage() {
   }, [])
 
   if (!hasMounted) return null
-
-
-
-
-
-  /*const ordersByType = [
-    { type: "Instalación", count: 456, color: "bg-green-500" },
-    { type: "Reconexión", count: 234, color: "bg-blue-500" },
-    { type: "Corte", count: 189, color: "bg-red-500" },
-    { type: "Mantenimiento", count: 156, color: "bg-yellow-500" },
-    { type: "Reparación", count: 212, color: "bg-purple-500" },
-  ]*/
-
-
-
-  const recentOrders = [
-    { id: "OT-2024-001", client: "Juan Pérez", type: "Instalación", status: "En Progreso", technician: "Carlos López" },
-    { id: "OT-2024-002", client: "María García", type: "Reconexión", status: "Completada", technician: "Ana Martín" },
-    { id: "OT-2024-003", client: "Pedro Ruiz", type: "Corte", status: "Pendiente", technician: "Luis Torres" },
-    {
-      id: "OT-2024-004",
-      client: "Carmen Silva",
-      type: "Mantenimiento",
-      status: "En Progreso",
-      technician: "José Díaz",
-    },
-  ]
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Completada":
-        return "bg-green-500"
-      case "En Progreso":
-        return "bg-blue-500"
-      case "Pendiente":
-        return "bg-yellow-500"
-      default:
-        return "bg-gray-500"
-    }
-  }
 
   return (
     <SidebarProvider>
@@ -146,44 +180,65 @@ export default function DashboardPage() {
             </div>
           </header>
           <div className="flex-1 space-y-6 p-6">
-            {/* Métricas principales */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Total Órdenes</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-cyan-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData.totalOrders}</div>
-                  <p className="text-xs text-slate-400">
-                    <span className="text-emerald-400">+12%</span> desde el mes pasado
-                  </p>
+            {/* Estadísticas rápidas */}
+            <div className="grid gap-6 md:grid-cols-4">
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Total Clientes</p>
+                      <p className="text-2xl font-bold text-white">{clients.length}</p>
+                    </div>
+                    <User className="w-8 h-8 text-cyan-400" />
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Pendientes</CardTitle>
-                  <Clock className="h-4 w-4 text-amber-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData.pendingOrders}</div>
-                  <p className="text-xs text-slate-400">
-                    <span className="text-red-400">+5</span> desde ayer
-                  </p>
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Activos</p>
+                      <p className="text-2xl font-bold text-white">
+                        {clients.filter((c) => c.estado === "1").length}
+                      </p>
+                    </div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-200">Completadas</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-emerald-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-white">{dashboardData.completedOrders}</div>
-                  <p className="text-xs text-slate-400">
-                    <span className="text-emerald-400">+18</span> hoy
-                  </p>
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Cortados</p>
+                      <p className="text-2xl font-bold text-white">
+                        {clients.filter((c) => c.estado === "0").length}
+                      </p>
+                    </div>
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Nuevos (Este Mes)</p>
+                      <p className="text-2xl font-bold text-white">
+                        {
+                          clients.filter((c) => {
+                            const regDate = new Date(c.fecha_registro)
+                            const now = new Date()
+                            return regDate.getMonth() === now.getMonth() && regDate.getFullYear() === now.getFullYear()
+                          }).length
+                        }
+                      </p>
+                    </div>
+                    <Building className="w-8 h-8 text-purple-400" />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -192,66 +247,53 @@ export default function DashboardPage() {
               {/* Órdenes por tipo */}
               <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
                 <CardHeader>
-                  <CardTitle className="text-white">Órdenes por Tipo</CardTitle>
-                  <CardDescription className="text-slate-400">Distribución de órdenes de trabajo</CardDescription>
+                  <CardTitle className="text-white">Cantidad de usuarios por servicio</CardTitle>
+                  <CardDescription className="text-slate-400"></CardDescription>
                 </CardHeader>
 
                 <CardContent className="flex flex-row items-center gap-8">
-                  {/* Listado de órdenes */}
-                  <div className="flex-1 space-y-4">
-                    <div className="flex justify-center gap-2 mt-2">
-                      {filters.map((f) => (
-                        <Button
-                          key={f.value}
-                          variant={filter === f.value ? 'default' : 'outline'}
-                          onClick={() => setFilter(f.value)}
-                          className="text-xs"
+
+                  <div className="flex gap-6 items-center">
+                    {/* Gráfico */}
+                    <div className="w-[300px] flex justify-center items-center">
+                      <PieChart width={300} height={300}>
+                        <Pie
+                          data={cantidaxservicio}
+                          dataKey="count"
+                          nameKey="type"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          label
                         >
-                          {f.label}
-                        </Button>
-                      ))}
+                          {cantidaxservicio.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
                     </div>
 
-                    {data.map((order, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: order.color }}></div>
-                          <span className="text-slate-200">{order.type}</span>
+                    {/* Leyenda personalizada */}
+                    <div className="flex-1 space-y-4">
+                      {cantidaxservicio.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: item.color }}
+                            ></div>
+                            <span className="text-gray-200 dark:text-slate-200 text-sm">{item.type}</span>
+                          </div>
+                          <Badge variant="secondary" className="bg-slate-700 text-white">
+                            {item.count}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary" className="bg-slate-700 text-white">
-                          {order.count}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Gráfico de torta */}
-                  <div className="w-[300px] flex justify-center items-center">
-                    <PieChart width={300} height={300}>
-                      <Pie
-                        data={data}
-                        dataKey="count"
-                        nameKey="type"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        label
-                      >
-                        {data.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
-
               </Card>
-
-              {/* Órdenes recientes */}
-
-
               <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -274,7 +316,6 @@ export default function DashboardPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="flex gap-2 mt-4">
                     {orderTypes.map((t) => (
                       <Button
@@ -288,7 +329,6 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 </CardHeader>
-
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={chartData}>
@@ -301,44 +341,50 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+            <div className="grid gap-6">
+  <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
+    <CardHeader>
+      <CardTitle className="text-white">Cantidad de usuarios por Nodo</CardTitle>
+      <CardDescription className="text-slate-400"></CardDescription>
+    </CardHeader>
+    <CardContent className="flex flex-row items-center gap-8">
+      <div className="w-full h-[400px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={cantidaxnodo}
+            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+          >
+            {/* Quitamos las líneas del fondo */}
+            <CartesianGrid strokeDasharray="0 0" vertical={false} horizontal={false} />
 
-            {/* Métricas adicionales según el rol */}
-            {userRole === "ADMINISTRADOR" && (
-              <div className="grid gap-6 md:grid-cols-3">
-                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-200">Técnicos Activos</CardTitle>
-                    <Users className="h-4 w-4 text-blue-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{dashboardData.technicians}</div>
-                    <p className="text-xs text-slate-400">15 de 18 disponibles</p>
-                  </CardContent>
-                </Card>
+            {/* Ocultamos el eje X */}
+            <XAxis dataKey="nodo" tick={false} axisLine={false} />
 
-                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-200">Clientes</CardTitle>
-                    <Users className="h-4 w-4 text-emerald-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{dashboardData.clients}</div>
-                    <p className="text-xs text-slate-400">+8 nuevos este mes</p>
-                  </CardContent>
-                </Card>
+            <YAxis allowDecimals={false} />
 
-                <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-xl">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-200">Órdenes Hoy</CardTitle>
-                    <Calendar className="h-4 w-4 text-blue-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{dashboardData.todayOrders}</div>
-                    <p className="text-xs text-slate-400">Meta: 25 órdenes</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+            {/* Tooltip para mostrar nombre del nodo y cantidad al hacer hover */}
+            <Tooltip 
+              formatter={(value: any, name: any, props: any) => [`${value}`, 'Contratos Activos']} 
+              labelFormatter={(label: any) => `Nodo: ${label}`}
+                cursor={{ fill: 'transparent' }} // Esto elimina el sombreado de hover
+
+            />
+
+            {/* Colores dinámicos por barra */}
+            <Bar dataKey="cantidad" name="Contratos Activos" >
+              {
+                cantidaxnodo.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))
+              }
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </CardContent>
+  </Card>
+</div>
+
           </div>
         </div>
       </SidebarInset>

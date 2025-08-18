@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { generarMapaHTML } from '@/components/ClientesMapaHtml';
+
 import {
   Dialog,
   DialogContent,
@@ -19,10 +21,11 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Eye, Phone, Mail, MapPin, User, Building, UserIcon, MapPinIcon, BriefcaseIcon, PlusCircle } from "lucide-react"
+import { Plus, Search, Edit, Eye, Phone, Mail, MapPin, User, Building, UserIcon, MapPinIcon, BriefcaseIcon, PlusCircle, IdCard, Calendar } from "lucide-react"
 import Listado_Tecnicos from "@/components/filtrado_tec";
 import { toast } from 'react-toastify';
 import 'leaflet/dist/leaflet.css';
+
 
 
 
@@ -69,11 +72,14 @@ interface Client {
   cli_coordenada: string
   cli_cel: string
   num_con: string
+  id_serv: string
   serv_nombre: string
   fecha_registro: string
   fecha_inicio: string
   estado: string
   usu_nombre: string
+  id_caja: string
+  id_nodo: number
 }
 
 export default function ClientsPage() {
@@ -127,7 +133,7 @@ export default function ClientsPage() {
   const cajasFiltradas = cajas.filter(caja => caja.id_nodo === Number(selectedNodo));
 
 
-  const getStatusColor = (status: string) => {
+  /*const getStatusColor = (status: string) => {
     switch (status) {
       case "Activo":
         return "bg-green-500"
@@ -140,7 +146,8 @@ export default function ClientsPage() {
       default:
         return "bg-gray-500"
     }
-  }
+  }*/
+
   //Carga de servicios
   useEffect(() => {
     const fetchServicios = async () => {
@@ -295,6 +302,14 @@ export default function ClientsPage() {
     }
   };
 
+  useEffect(() => {
+    if (selectedClient && selectedClient.id_caja) {
+      const cajaCliente = cajas.find(caja => caja.id_caja.toString() === selectedClient.id_caja);
+      if (cajaCliente) {
+        setSelectedNodo(cajaCliente.id_nodo.toString());
+      }
+    }
+  }, [selectedClient, cajas]);
 
 
   useEffect(() => {
@@ -312,93 +327,35 @@ export default function ClientsPage() {
   }, [id_user]);
 
 
-  const handleEditClient = () => {
-    if (selectedClient) {
-      setClients(clients.map((client) => (client.cli_id === selectedClient.cli_id ? selectedClient : client)))
-      setIsEditModalOpen(false)
-      setSelectedClient(null)
-    }
+  const verEnMapa = () => {
+  if (!clients || clients.length === 0) {
+    alert("No hay clientes para mostrar en el mapa");
+    return;
   }
 
+  const mapaHTML = generarMapaHTML(clients);
+  if (!mapaHTML) {
+    alert("Ningún cliente tiene coordenadas válidas");
+    return;
+  }
 
-  const verEnMapa = () => {
-    if (!clients || clients.length === 0) {
-      alert("No hay clientes para mostrar en el mapa");
-      return;
+  const blob = new Blob([mapaHTML], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+
+  if (win) {
+    win.onload = () => URL.revokeObjectURL(url);
+  } else {
+    alert("El navegador bloqueó la nueva ventana. Permite popups.");
+  }
+};
+
+  //actualizar nodo al seleccionar nodo
+  useEffect(() => {
+    if (selectedClient?.id_nodo !== undefined && selectedClient.id_nodo !== null) {
+      setSelectedNodo(selectedClient.id_nodo.toString());
     }
-
-    const ubicaciones = clients
-      .filter(c => c.cli_coordenada && c.cli_coordenada.includes(","))
-      .map(c => {
-        const [lat, lng] = c.cli_coordenada.split(",").map(Number);
-        return {
-          nombre: `${c.cli_nombre} ${c.cli_apellido}`,
-          lat,
-          lng,
-        };
-      });
-
-    if (ubicaciones.length === 0) {
-      alert("Ningún cliente tiene coordenadas válidas");
-      return;
-    }
-
-    // Crear un blob con el contenido HTML
-    const mapaHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Mapa de Clientes</title>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-      <style>
-        #map { height: 100vh; width: 100vw; }
-        body { margin: 0; }
-        .leaflet-popup-content-wrapper {
-          font-family: sans-serif;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="map"></div>
-      <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-      <script>
-        const ubicaciones = ${JSON.stringify(ubicaciones)};
-        const map = L.map('map').setView([${ubicaciones[0].lat}, ${ubicaciones[0].lng}], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        const group = L.featureGroup();
-
-        ubicaciones.forEach(c => {
-          const marker = L.marker([c.lat, c.lng])
-            .bindPopup('<strong>' + c.nombre + '</strong>')
-            .addTo(map);
-          group.addLayer(marker);
-        });
-
-        map.fitBounds(group.getBounds());
-      </script>
-    </body>
-    </html>
-  `;
-
-    // Crear un blob y abrirlo como URL
-    const blob = new Blob([mapaHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-
-    // Liberar memoria cuando la ventana se cierre
-    if (win) {
-      win.onload = () => URL.revokeObjectURL(url);
-    } else {
-      alert("El navegador bloqueó la nueva ventana. Permite popups.");
-    }
-  };
-
-
+  }, [selectedClient]);
 
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -420,8 +377,103 @@ export default function ClientsPage() {
     return false;
   };
 
+  //Editar cliente 
+  const handleEditClient = async () => {
+    if (selectedClient) {
+      try {
+        const response = await fetch('/api/cliente/editar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cliente: {
+              cli_id: selectedClient.cli_id,
+              cli_tipo: selectedClient.cli_tipo,
+              cli_nombre: selectedClient.cli_nombre,
+              cli_apellido: selectedClient.cli_apellido,
+              cli_razonsoci: selectedClient.cli_razonsoci,
+              cli_dni: selectedClient.cli_dni,
+              cli_ruc: selectedClient.cli_ruc,
+              cli_direccion: selectedClient.cli_direccion,
+              cli_coordenada: selectedClient.cli_coordenada,
+              cli_cel: selectedClient.cli_cel
+            },
+            contrato: {
+              num_con: selectedClient.num_con,
+              id_serv: parseInt(selectedClient.id_serv),
+              id_caja: parseInt(selectedClient.id_caja),
+              estado: parseInt(selectedClient.estado),
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const updated = await response.json();
+          setClients(clients.map((client) => client.cli_id === selectedClient.cli_id ? selectedClient : client));
+          setIsEditModalOpen(false);
+          setSelectedClient(null);
+          fetchClients();
+          toast.success("Datos editados correctamente");
+        } else {
+          toast.error("Error en actualizar cliente");
+          console.error("Error al actualizar cliente");
+        }
+      } catch (error) {
+        toast.error("Erroren editarClient:");
+        console.error("Error en editarClient:", error);
+      }
+    }
+  };
 
 
+  ////Mostrar direccion del usuario en mapa
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !isViewModalOpen ||
+      !selectedClient?.cli_coordenada
+    )
+      return;
+
+    let map: any;
+
+    const loadMap = async () => {
+      const L = await import("leaflet");
+
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+
+      const parts = selectedClient.cli_coordenada.split(",").map(Number);
+      if (parts.length !== 2 || parts.some(isNaN)) return;
+
+      const coords: [number, number] = [parts[0], parts[1]];
+
+      map = L.map("map").setView(coords, 15);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+
+      L.marker(coords)
+        .addTo(map)
+        .bindPopup(selectedClient.cli_direccion)
+        .openPopup();
+    };
+
+    loadMap();
+
+    return () => {
+      if (map) {
+        map.remove();
+      }
+    };
+  }, [isViewModalOpen, selectedClient]);
 
   return (
     <SidebarProvider>
@@ -509,7 +561,7 @@ export default function ClientsPage() {
                       Gestiona la información de todos los clientes
                     </CardDescription>
                   </div>
-                  <Button onClick={verEnMapa}>Ver en Mapa</Button>
+                  <Button className="bg-gray-200 text-black hover:bg-gray-700 hover:text-white" onClick={verEnMapa}>Ver en Mapa</Button>
 
                   <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                     <DialogTrigger asChild>
@@ -586,11 +638,11 @@ export default function ClientsPage() {
                               <>
                                 <div className="space-y-2">
                                   <Label htmlFor="nombre">Nombre</Label>
-                                  <Input id="nombre" value={newClient.nombre || ""} onChange={(e) => setNewClient({ ...newClient, nombre: e.target.value })} className="bg-gray-700 border-gray-600" required />
+                                  <Input id="nombre" value={newClient.nombre || ""} onChange={(e) => setNewClient({ ...newClient, nombre: e.target.value.toUpperCase() })} className="bg-gray-700 border-gray-600" required />
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="apellido">Apellido</Label>
-                                  <Input id="apellido" value={newClient.apellido || ""} onChange={(e) => setNewClient({ ...newClient, apellido: e.target.value })} className="bg-gray-700 border-gray-600" required />
+                                  <Input id="apellido" value={newClient.apellido || ""} onChange={(e) => setNewClient({ ...newClient, apellido: e.target.value.toUpperCase() })} className="bg-gray-700 border-gray-600" required />
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="dni">DNI</Label>
@@ -598,14 +650,14 @@ export default function ClientsPage() {
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="celular">Celular</Label>
-                                  <Input id="celular" value={newClient.celular || ""} onChange={(e) => setNewClient({ ...newClient, celular: e.target.value })} className="bg-gray-700 border-gray-600" />
+                                  <Input id="celular" value={newClient.celular || ""} onChange={(e) => setNewClient({ ...newClient, celular: e.target.value })} className="bg-gray-700 border-gray-600" maxLength={9} />
                                 </div>
                               </>
                             ) : (
                               <>
                                 <div className="space-y-2">
                                   <Label htmlFor="razonSocial">Razón Social</Label>
-                                  <Input id="razonSocial" value={newClient.razon_social || ""} onChange={(e) => setNewClient({ ...newClient, razon_social: e.target.value })} className="bg-gray-700 border-gray-600" required />
+                                  <Input id="razonSocial" value={newClient.razon_social || ""} onChange={(e) => setNewClient({ ...newClient, razon_social: e.target.value.toUpperCase() })} className="bg-gray-700 border-gray-600" required />
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor="ruc">RUC</Label>
@@ -627,7 +679,7 @@ export default function ClientsPage() {
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="direccion">Dirección</Label>
-                            <Input id="direccion" value={newClient.direccion || ""} onChange={(e) => setNewClient({ ...newClient, direccion: e.target.value })} className="bg-gray-700 border-gray-600" required />
+                            <Input id="direccion" value={newClient.direccion || ""} onChange={(e) => setNewClient({ ...newClient, direccion: e.target.value.toUpperCase() })} className="bg-gray-700 border-gray-600" required />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -684,7 +736,7 @@ export default function ClientsPage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="num_contrato">Número de Contrato</Label>
-                              <Input id="num_contrato" value={newClient.num_contrato || ""} onChange={(e) => setNewClient({ ...newClient, num_contrato: e.target.value })} className="bg-gray-700 border-gray-600" required maxLength={10} />
+                              <Input id="num_contrato" value={newClient.num_contrato || ""} onChange={(e) => setNewClient({ ...newClient, num_contrato: e.target.value.toUpperCase() })} className="bg-gray-700 border-gray-600" required maxLength={10} />
                             </div>
 
                             <div className="space-y-2">
@@ -735,7 +787,7 @@ export default function ClientsPage() {
                       {/* Navegación */}
                       <div className="flex justify-between mt-6">
                         {currentStep > 1 && (
-                          <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>
+                          <Button className="text-black" variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>
                             Anterior
                           </Button>
                         )}
@@ -831,7 +883,7 @@ export default function ClientsPage() {
                             ) : client.estado === "0" ? (
                               <Badge className="text-white bg-red-600">CORTADO</Badge>
                             ) : (
-                              <Badge className="text-white bg-gray-500">SIN INFO</Badge>
+                              <Badge className="text-white bg-gray-500">SUSPENDIDO</Badge>
                             )}
                           </TableCell>
 
@@ -874,32 +926,60 @@ export default function ClientsPage() {
 
         {/* Modal de visualización */}
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-          <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
+          <DialogContent className="bg-gray-800 border-gray-700 text-white w-full max-w-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-md">
             <DialogHeader>
               <DialogTitle>Perfil del Cliente</DialogTitle>
               <DialogDescription className="text-gray-400">Información detallada del cliente</DialogDescription>
             </DialogHeader>
             {selectedClient && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">{selectedClient.cli_nombre}</h3>
-                    <p className="text-gray-400">{selectedClient.cli_id}</p>
-                  </div>
-                  <Badge className={`${getStatusColor(selectedClient.estado)} text-white`}>
-                    {selectedClient.estado}
-                  </Badge>
-                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      {selectedClient.cli_tipo === "NATURAL" ? (
+                        <>
+                          <h3 className="text-xl font-semibold text-white">{selectedClient.cli_nombre}</h3>
+                          <h3 className="text-xl font-semibold text-white">{selectedClient.cli_apellido}</h3>
+                        </>
+                      ) : (
+                        <h3 className="text-xl font-semibold text-white">{selectedClient.cli_razonsoci}</h3>
+                      )}
 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <p className="text-gray-400">{selectedClient.cli_id}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Badge className={
+                            selectedClient.estado === "1"
+                              ? "bg-green-600"
+                              : selectedClient.estado === "0"
+                                ? "bg-red-600"
+                                : "bg-gray-600"}>
+                            {selectedClient.estado === "1"
+                              ? "Activo"
+                              : selectedClient.estado === "0"
+                                ? "Cortado"
+                                : "Suspendido"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <p className="text-gray-400">{selectedClient.cli_direccion}</p>
+
+                    </div>
+                  </div>
+                  <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <Label className="text-gray-400">Información de Contacto</Label>
                       <div className="space-y-2 mt-1">
                         <div className="flex items-center text-white">
-                          <Mail className="w-4 h-4 mr-2 text-gray-400" />
-                          {selectedClient.cli_dni}
+                          <IdCard className="w-4 h-4 mr-2 text-gray-400" />
+                          {selectedClient.cli_tipo === "NATURAL"
+                            ? selectedClient.cli_dni
+                            : selectedClient.cli_ruc}
                         </div>
+
                         <div className="flex items-center text-white">
                           <Phone className="w-4 h-4 mr-2 text-gray-400" />
                           {selectedClient.cli_cel}
@@ -911,42 +991,33 @@ export default function ClientsPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
+                  <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <Label className="text-gray-400">Información del Servicio</Label>
                       <div className="space-y-2 mt-1">
-                        <p className="text-white">Tipo: {selectedClient.serv_nombre}</p>
-                        <p className="text-white">Registro: {selectedClient.fecha_registro}</p>
+                        <p className="text-white">{selectedClient.serv_nombre}</p>
+                        <div className="flex items-start text-white">
+                          <Calendar className="w-4 h-4 mr-2 text-gray-400 mt-0.5" />
+                          <span className="text-m">Registro: {selectedClient.fecha_registro}</span>
+                        </div>
+                        <div className="flex items-start text-white">
+                          <Calendar className="w-4 h-4 mr-2 text-gray-400 mt-0.5" />
+                          <span className="text-m">Inicio: {selectedClient.fecha_inicio}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="bg-gray-700/30 border-gray-600">
-                    <CardContent className="p-4 text-center">
-                      <p className="text-sm text-gray-400">Órdenes Totales</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-gray-700/30 border-gray-600">
-                    <CardContent className="p-4 text-center">
-                      <p className="text-2xl font-bold text-white">
-                        {Math.floor(
-                          (new Date().getTime() - new Date(selectedClient.fecha_registro).getTime()) /
-                          (1000 * 60 * 60 * 24),
-                        )}
-                      </p>
-                      <p className="text-sm text-gray-400">Días como Cliente</p>
-                    </CardContent>
-                  </Card>
+                <div className="space-y-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <div
+                    id="map"
+                    className="w-full h-48 sm:h-64 rounded-md z-0"
+                  />
                 </div>
-
               </div>
             )}
           </DialogContent>
         </Dialog>
-
         {/* Modal de edición */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="bg-gray-800 border-gray-700 text-white max-w-2xl">
@@ -956,74 +1027,119 @@ export default function ClientsPage() {
             </DialogHeader>
             {selectedClient && (
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-name">Nombre Completo</Label>
-                    <Input
-                      id="edit-name"
-                      value={selectedClient.cli_nombre}
-                      onChange={(e) => setSelectedClient({ ...selectedClient, cli_nombre: e.target.value })}
-                      className="bg-gray-700 border-gray-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-email">Email</Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      value={selectedClient.cli_dni}
-                      onChange={(e) => setSelectedClient({ ...selectedClient, cli_dni: e.target.value })}
-                      className="bg-gray-700 border-gray-600"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-phone">Teléfono</Label>
-                    <Input
-                      id="edit-phone"
-                      value={selectedClient.cli_cel}
-                      onChange={(e) => setSelectedClient({ ...selectedClient, cli_cel: e.target.value })}
-                      className="bg-gray-700 border-gray-600"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-status">Estado</Label>
-                    <Select
-                      value={selectedClient.estado}
-                      onValueChange={(value) => setSelectedClient({ ...selectedClient, estado: value })}
-                    >
-                      <SelectTrigger className="bg-gray-700 border-gray-600">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
-                        <SelectItem value="Activo">Activo</SelectItem>
-                        <SelectItem value="Suspendido">Suspendido</SelectItem>
-                        <SelectItem value="Inactivo">Inactivo</SelectItem>
-                        <SelectItem value="Pendiente">Pendiente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-serviceType">Tipo de Servicio</Label>
-                    <Select
-                      value={selectedClient.serv_nombre}
-                      onValueChange={(value) => setSelectedClient({ ...selectedClient, serv_nombre: value })}
-                    >
-                      <SelectTrigger className="bg-gray-700 border-gray-600">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
-                        <SelectItem value="Fibra Óptica">Fibra Óptica</SelectItem>
-                        <SelectItem value="Cable">Cable</SelectItem>
-                        <SelectItem value="ADSL">ADSL</SelectItem>
-                        <SelectItem value="Satelital">Satelital</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                {selectedClient.cli_tipo === "NATURAL" ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-nombre">Nombre</Label>
+                        <Input
+                          id="edit-nombre"
+                          value={selectedClient.cli_nombre}
+                          onChange={(e) => setSelectedClient({ ...selectedClient, cli_nombre: e.target.value })}
+                          className="bg-gray-700 border-gray-600"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-apellido">Apellido</Label>
+                        <Input
+                          id="edit-apellido"
+                          value={selectedClient.cli_apellido}
+                          onChange={(e) => setSelectedClient({ ...selectedClient, cli_apellido: e.target.value })}
+                          className="bg-gray-700 border-gray-600"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-dni">DNI</Label>
+                        <Input
+                          id="edit-dni"
+                          value={selectedClient.cli_dni}
+                          onChange={(e) => setSelectedClient({ ...selectedClient, cli_dni: e.target.value })}
+                          className="bg-gray-700 border-gray-600"
+                          maxLength={8}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-phone">Teléfono</Label>
+                        <Input
+                          id="edit-phone"
+                          value={selectedClient.cli_cel}
+                          onChange={(e) => setSelectedClient({ ...selectedClient, cli_cel: e.target.value })}
+                          className="bg-gray-700 border-gray-600"
+                          maxLength={9}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-status">Estado</Label>
+                        <Select
+                          value={selectedClient.estado}
+                          onValueChange={(value) => setSelectedClient({ ...selectedClient, estado: value })}
+                        >
+                          <SelectTrigger className="bg-gray-700 border-gray-600">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem className="bg-green-800" value="1">Activo</SelectItem>
+                            <SelectItem className="bg-red-800" value="0">Cortado</SelectItem>
+                            <SelectItem className="bg-gray-800" value="2">Suspendido</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-razon">Razón Social</Label>
+                      <Input
+                        id="edit-razon"
+                        value={selectedClient.cli_razonsoci}
+                        onChange={(e) => setSelectedClient({ ...selectedClient, cli_razonsoci: e.target.value })}
+                        className="bg-gray-700 border-gray-600"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-ruc">RUC</Label>
+                        <Input
+                          id="edit-ruc"
+                          value={selectedClient.cli_ruc}
+                          onChange={(e) => setSelectedClient({ ...selectedClient, cli_ruc: e.target.value })}
+                          className="bg-gray-700 border-gray-600"
+                          maxLength={11}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-phone">Teléfono</Label>
+                        <Input
+                          id="edit-phone"
+                          value={selectedClient.cli_cel}
+                          onChange={(e) => setSelectedClient({ ...selectedClient, cli_cel: e.target.value })}
+                          className="bg-gray-700 border-gray-600"
+                          maxLength={9}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-status">Estado</Label>
+                        <Select
+                          value={selectedClient.estado}
+                          onValueChange={(value) => setSelectedClient({ ...selectedClient, estado: value })}
+                        >
+                          <SelectTrigger className="bg-gray-700 border-gray-600">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                            <SelectItem className="bg-green-800" value="1">Activo</SelectItem>
+                            <SelectItem className="bg-red-800" value="0">Cortado</SelectItem>
+                            <SelectItem className="bg-gray-800" value="2">Suspendido</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="edit-address">Dirección</Label>
                   <Input
@@ -1033,10 +1149,131 @@ export default function ClientsPage() {
                     className="bg-gray-700 border-gray-600"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-service">Servicio</Label>
+                    <Select
+                      value={selectedClient.id_serv}
+                      onValueChange={(value) => setSelectedClient({ ...selectedClient, id_serv: value })}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600">
+                        <SelectValue placeholder="Seleccionar Servicio">
+                          {
+                            servicios.find(
+                              (s) => s.serv_id.toString() === selectedClient.id_serv.toString()
+                            )?.serv_nombre
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        {servicios.map((esp) => (
+                          <SelectItem key={esp.serv_id} value={esp.serv_id.toString()}>
+                            {esp.serv_nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-coordenada">Coordenada</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="edit-coordenada"
+                        value={selectedClient.cli_coordenada}
+                        onChange={(e) => setSelectedClient({ ...selectedClient, cli_coordenada: e.target.value })}
+                        className="bg-gray-700 border-gray-600"
+                      />
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                        onClick={() => {
+                          if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                              (position) => {
+                                const coords = `${position.coords.latitude}, ${position.coords.longitude}`;
+                                setSelectedClient({ ...selectedClient, cli_coordenada: coords });
+                              },
+                              (error) => {
+                                console.error("Error al obtener ubicación:", error);
+                                alert("No se pudo obtener la ubicación.");
+                              },
+                              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                            );
+                          } else {
+                            alert("Geolocalización no disponible.");
+                          }
+                        }}
+                      >
+                        <MapPin></MapPin>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nodo">Nodo</Label>
+                    <Select
+                      value={selectedNodo}
+                      onValueChange={(value) => {
+                        setSelectedNodo(value);
+
+                        if (selectedClient) {
+                          setSelectedClient({
+                            ...selectedClient,
+                            id_nodo: parseInt(value),
+                          });
+                        }
+                        setSelectedClient((prev) => ({ ...prev!, id_caja: "" }));
+
+                      }}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600">
+                        <SelectValue placeholder="Seleccionar Nodo">
+                          {
+                            nodos.find(
+                              (n) => n.id_nodo.toString() === selectedClient.id_nodo.toString()
+                            )?.nombre
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        {nodos.map((nod) => (
+                          <SelectItem key={nod.id_nodo} value={nod.id_nodo.toString()}>
+                            {nod.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="caja">Caja</Label>
+                    <Select
+                      value={selectedClient.id_caja.toString()}
+                      onValueChange={(value) => setSelectedClient({ ...selectedClient, id_caja: value })}
+                    >
+                      <SelectTrigger className="bg-gray-700 border-gray-600">
+                        <SelectValue placeholder="Seleccionar caja">
+                          {
+                            cajas.find(
+                              (c) => c.id_caja.toString() === selectedClient.id_caja.toString()
+                            )?.nombre
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        {cajasFiltradas.map((caj) => (
+                          <SelectItem key={caj.id_caja.toString()} value={caj.id_caja.toString()}>
+                            {caj.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             )}
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              <Button className="text-black" variant="outline" onClick={() => setIsEditModalOpen(false)}>
                 Cancelar
               </Button>
               <Button onClick={handleEditClient} className="bg-gradient-to-r from-cyan-500 to-blue-600">

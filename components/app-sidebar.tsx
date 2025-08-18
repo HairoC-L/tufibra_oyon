@@ -10,8 +10,8 @@ import {
   Users,
   User,
   Wrench,
-  Search,
-  Bell,
+  SquareUser,
+  Map,
   LogOut,
   Zap,
   MapPin,
@@ -60,16 +60,7 @@ export function AppSidebar() {
       url: "/dashboard",
       icon: Home,
     },
-    {
-      title: "Órdenes de Trabajo",
-      url: "/orders",
-      icon: FileText,
-    },
-    {
-      title: "Seguimiento",
-      url: "/tracking",
-      icon: MapPin,
-    },
+
   ]
 
   const getAdditionalMenuItems = () => {
@@ -81,32 +72,59 @@ export function AppSidebar() {
             url: "/clients",
             icon: Users,
           },
+
           {
             title: "Gestión de Técnicos",
             url: "/technicians",
             icon: Wrench,
           },
           {
+            title: "Gestión de Cajeros",
+            url: "/personal_oficina",
+            icon: SquareUser,
+          },
+          {
+            title: "Cobranza",
+            url: "/cobranza",
+            icon: DollarSign,
+          },
+          {
+            title: "Distribución",
+            url: "/distribucion",
+            icon: Map,
+          },
+          {
             title: "Usuarios",
             url: "/usuarios",
             icon: User,
           },
-          {
+          /*{
             title: "Reportes",
             url: "/reportes",
             icon: BarChart3,
+          },*/
+          /*{
+            title: "Órdenes de Trabajo",
+            url: "/orders",
+            icon: FileText,
           },
+          {
+            title: "Seguimiento",
+            url: "/tracking",
+            icon: MapPin,
+          },
+
           {
             title: "Configuración",
             url: "/settings",
             icon: Settings,
-          },
+          },*/
         ]
       case "OFICINA":
         return [
           {
-            title: "Caja",
-            url: "/caja",
+            title: "Cobranza",
+            url: "/cobranza",
             icon: DollarSign,
           },
           {
@@ -114,11 +132,11 @@ export function AppSidebar() {
             url: "/clients",
             icon: Users,
           },
-          {
+          /*{
             title: "Reportes",
             url: "/reportes",
             icon: BarChart3,
-          },
+          },*/
         ]
       case "TECNICO":
         return [
@@ -145,7 +163,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b bg-white p-2">
         <div className="flex flex-col items-center space-x-3">
           <Image
-            src="/tufibra_logo.png"
+            src="/tufibra_logo.webp"
             alt="Logo Cable Digital"
             width={160}
             height={160}
@@ -171,28 +189,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400 text-xs uppercase tracking-wider">
-            Herramientas
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-slate-200 hover:bg-slate-700/50 hover:text-white">
-                  <Search className="w-4 h-4" />
-                  <span>Búsqueda Avanzada</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton className="text-slate-200 hover:bg-slate-700/50 hover:text-white">
-                  <Bell className="w-4 h-4" />
-                  <span>Notificaciones</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -131,6 +131,81 @@ export async function POST(req: NextRequest) {
             },
         });
 
+        //////////////CREACION DE DEUDA//////////////////////
+        const servicio = await prisma.servicio.findUnique({
+            where: { serv_id: parseInt(tipoServicio) },
+            select: {
+                serv_nombre: true,
+                serv_precio: true,
+            },
+        });
+
+        if (!servicio) {
+            return NextResponse.json(
+                { error: "Servicio no encontrado." },
+                { status: 400 }
+            );
+        }
+        const fechaInicioDate = new Date(`${fechaInicio}T00:00:00`);
+        const anio = fechaInicioDate.getFullYear();
+        const mes = fechaInicioDate.getMonth(); // 0-indexed
+
+        // Obtener cantidad de días en el mes
+        const ultimoDiaDelMes = new Date(anio, mes + 1, 0).getDate();
+        const diaInicio = fechaInicioDate.getDate();
+
+        // Si se registra el último día del mes, no crear deuda
+        if (diaInicio < ultimoDiaDelMes) {
+            // Si se registra el primer día del mes, se cobra el precio completo
+            if (diaInicio === 1) {
+                const monto = Number(servicio.serv_precio);
+
+                const ano_mes = `${anio}-${(mes + 1).toString().padStart(2, "0")}`;
+                const nombreServicio = servicio.serv_nombre || "Servicio";
+                const descripcion = `${nombreServicio.toUpperCase()} ${fechaInicioDate.toLocaleString("es-PE", {
+                    month: "long",
+                    year: "numeric"
+                }).toUpperCase()}`;
+
+                await prisma.deuda.create({
+                    data: {
+                        ano_mes,
+                        descripcion,
+                        monto,
+                        estado: "ACTIVO",
+                        id_servicio: parseInt(tipoServicio),
+                        num_con: num_contrato,
+                    },
+                });
+            } else {
+                // Si no es el primer día, se calcula prorrateo
+                const diasRestantes = ultimoDiaDelMes - diaInicio;
+
+                const precioDecimal = Number(servicio.serv_precio);
+                const montoCrudo = (precioDecimal / ultimoDiaDelMes) * diasRestantes;
+
+                const monto = Math.floor(montoCrudo * 10) / 10;
+
+                const ano_mes = `${anio}-${(mes + 1).toString().padStart(2, "0")}`;
+                const nombreServicio = servicio.serv_nombre || "Servicio";
+                const descripcion = `${nombreServicio.toUpperCase()} ${fechaInicioDate.toLocaleString("es-PE", {
+                    month: "long",
+                    year: "numeric"
+                }).toUpperCase()}`;
+
+                await prisma.deuda.create({
+                    data: {
+                        ano_mes,
+                        descripcion,
+                        monto,
+                        saldo_pendiente: monto,
+                        estado: "ACTIVO",
+                        id_servicio: parseInt(tipoServicio),
+                        num_con: num_contrato,
+                    },
+                });
+            }
+        }
         return NextResponse.json({ cliente });
     } catch (error) {
         console.error("Error al crear cliente:", error);

@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
+
+    const body = await req.json();
+    //console.log("BODY RECIBIDO:", body); // 
+
     const {
       id_tipo_compro,
       serie,
@@ -11,8 +15,8 @@ export async function POST(req: NextRequest) {
       medio_pago,
       num_con,
       id_user,
-      detallePago, // <- esto llega del frontend
-    } = await req.json();
+      detallePago,
+    } = body;
 
     if (
       !id_tipo_compro ||
@@ -40,7 +44,6 @@ export async function POST(req: NextRequest) {
         id_tipo_compro: parseInt(id_tipo_compro),
         serie,
         correlativo: parseInt(correlativo),
-        fecha_emision: new Date(),
         monto_total: parseFloat(monto_total),
         medio_pago,
         estado: "NORMAL",
@@ -56,15 +59,43 @@ export async function POST(req: NextRequest) {
           cod_comprobante,
           descripcion: item.descripcion,
           ano_mes: item.ano_mes,
-          monto: parseFloat(item.monto), 
+          monto: parseFloat(item.monto),
         },
       });
-
-      // Cambiar estado de la deuda
-      await prisma.deuda.update({
-        where: { id_deuda: item.id },
-        data: { estado: "PAGADO" },
+    }
+    for (const item of detallePago) {
+      // Obtener la deuda actual
+      const deuda = await prisma.deuda.findUnique({
+        where: { id_deuda: item.id_deuda },
       });
+
+      if (!deuda) continue;
+
+      // Convertir a number por seguridad (por si vienen como string)
+      const montoPagado = Number(item.monto);
+      const saldoPendiente = Number(deuda.saldo_pendiente);
+
+      // Comparar
+      if (montoPagado == saldoPendiente) {
+        // Pago total → salda la deuda
+        await prisma.deuda.update({
+          where: { id_deuda: item.id_deuda },
+          data: {
+            saldo_pendiente: 0,
+            estado: "PAGADO",
+          },
+        });
+      } else if (montoPagado < saldoPendiente) {
+
+        const nuevoSaldo = Number(saldoPendiente - montoPagado);
+        await prisma.deuda.update({
+          where: { id_deuda: item.id_deuda },
+          data: {
+            saldo_pendiente: nuevoSaldo,
+            estado: "RESTANTE",
+          },
+        });
+      }
     }
 
     return NextResponse.json({ comprobante: nuevoComprobante });

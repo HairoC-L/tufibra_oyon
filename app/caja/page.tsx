@@ -131,15 +131,6 @@ export default function ClientsPage() {
   useEffect(() => {
     fetchClients();
   }, []);
-
-  useEffect(() => {
-    const nuevoTotal = detallePago.reduce((sum, d) => sum + d.monto, 0);
-    setNewPago((prev) => ({
-      ...prev,
-      monto_total: nuevoTotal.toString(),
-    }));
-  }, [detallePago])
-
   const fetchClients = async () => {
     try {
       const res = await fetch("/api/cliente/clienteContrato");
@@ -154,6 +145,15 @@ export default function ClientsPage() {
       console.error("Error parsing JSON:", err);
     }
   };
+  useEffect(() => {
+    const nuevoTotal = detallePago.reduce((sum, d) => sum + d.monto, 0);
+    setNewPago((prev) => ({
+      ...prev,
+      monto_total: nuevoTotal.toString(),
+    }));
+  }, [detallePago])
+
+
 
 
   useEffect(() => {

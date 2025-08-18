@@ -10,6 +10,7 @@ export async function GET() {
           include: {
             servicio: true,
             usuario: true,
+            caja: true,
           },
         },
       },
@@ -30,6 +31,7 @@ export async function GET() {
         cli_direccion: cli.cli_direccion,
         cli_coordenada: cli.cli_coordenada,
         cli_cel: cli.cli_cel,
+        id_serv: contrato?.id_serv ?? "",
         num_con: contrato?.num_con ?? "",
         serv_nombre: contrato?.servicio?.serv_nombre ?? "",
         fecha_registro: contrato?.fecha_registro?.toISOString().split("T")[0] ?? "",
@@ -37,6 +39,8 @@ export async function GET() {
         estado: contrato?.estado?.toString() ?? "",
         usu_nombre: contrato?.usuario?.usu_nombre ?? "",
         id_tipo_comprobante: contrato?.id_tipo_comprobante,
+        id_caja: contrato?.id_caja ?? "",
+        id_nodo: contrato?.caja?.id_nodo ?? "",
       }
     })
 
