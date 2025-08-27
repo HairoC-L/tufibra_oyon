@@ -9,13 +9,20 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/navarcobranza"
 import { useSearchParams } from "next/navigation"
-//import { customers, debts, payments, users } from "@/lib/database"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Receipt, Search, CheckCircle, Calculator, CreditCard, ArrowLeft, Printer, Download, ArrowRight
+  Receipt, Search, XCircle, Pencil, CreditCard, ArrowLeft, Printer, Download, ArrowRight
   , AlertTriangle, User
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ReceiptPreview } from "@/components/receipt-preview"
@@ -180,43 +187,42 @@ interface SelectedDeudas {
   selected: boolean
 }
 
+const meses = [
+  { nombre: 'ENERO', valor: 1 },
+  { nombre: 'FEBRERO', valor: 2 },
+  { nombre: 'MARZO', valor: 3 },
+  { nombre: 'ABRIL', valor: 4 },
+  { nombre: 'MAYO', valor: 5 },
+  { nombre: 'JUNIO', valor: 6 },
+  { nombre: 'JULIO', valor: 7 },
+  { nombre: 'AGOSTO', valor: 8 },
+  { nombre: 'SEPTIEMBRE', valor: 9 },
+  { nombre: 'OCTUBRE', valor: 10 },
+  { nombre: 'NOVIEMBRE', valor: 11 },
+  { nombre: 'DICIEMBRE', valor: 12 },
+];
 
+const años = [2025, 2026];
 
-/*function searchCustomers(query: string): Customer[] {
-  if (!query.trim()) return customers
-
-  const searchTerm = query.toLowerCase()
-  return customers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchTerm) ||
-      customer.dni.includes(searchTerm) ||
-      customer.phone.includes(searchTerm) ||
-      customer.email.toLowerCase().includes(searchTerm),
-  )
-}
-
-function getCustomerById(id: string): Customer | undefined {
-  return customers.find((customer) => customer.id === id)
-}*/
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [tipo_comrprobante, setTipoComprobante] = useState<tipo_comprobante[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
-  //const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [openModal, setOpenModal] = useState(false);
 
   const [deudas, setDeudas] = useState<deuda[]>([])
 
   const [pagos, setPagos] = useState<pagos[]>([])
   const [detallePago, setDetallePago] = useState<detallePago[]>([]);
-
-
-  const [serie, setSerie] = useState("");
-  const [numero, setNumero] = useState("");
-  const [selectedTipo, setSelectedTipo] = useState("");
   const [id_user, setIdUser] = useState("");
+  const [userRole, setUserRole] = useState("");
+
+  const currentYear = new Date().getFullYear();
+  const [mes, setMes] = useState(1);
+  const [anio, setAnio] = useState(currentYear);
+
 
   const [showDetalleComprobante, setShowDetalleComprobante] = useState(false);
   const [newPago, setNewPago] = useState({
@@ -229,6 +235,23 @@ export default function ClientsPage() {
     id_user: id_user,
   })
 
+  const generarDeuda = async () => {
+    try {
+      const res = await fetch('/api/caja/deudaMasiva', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mes, anio }),
+      });
+
+      if (!res.ok) throw new Error('Error al generar deuda');
+
+      const data = await res.json();
+      toast.success('Deuda generada correctamente');
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al generar deuda');
+    }
+  };
 
   function searchClientes(query: string): Client[] {
     if (!query.trim()) return clients
@@ -291,7 +314,7 @@ export default function ClientsPage() {
   useEffect(() => {
     fetchClients();
     fetchDeudas();
-    fetchPagos();
+    setUserRole(localStorage.getItem("userRole") || "")
   }, []);
 
 
@@ -343,82 +366,16 @@ export default function ClientsPage() {
 
   const [error, setError] = useState("")
 
+
+    const [editingDeuda, setEditingDeuda] = useState(null)
+  const [editedData, setEditedData] = useState({ monto: "", saldo_pendiente: "" })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   //  const customers = searchCustomers(searchQuery)
   const clientes_filtrados = searchClientes(searchQuery)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [selectedDeudas, setSelectedDeudas] = useState<SelectedDeudas[]>([])
 
-
-
-  /*
-  
-    // Preseleccionar cliente si viene de URL
-    useEffect(() => {
-      if (preselectedCustomerId) {
-        const customer = getCustomerById(preselectedCustomerId)
-        if (customer) {
-          setSelectedCustomer(customer)
-          setCurrentStep("select-debts")
-        }
-      }
-    }, [preselectedCustomerId])
-  
-  */
-  /*
-  
-    // Funciones de deudas
-    function getCustomerDebts(customerId: string): Debt[] {
-      return debts
-        .filter((debt) => debt.customerId === customerId)
-        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-    }
-  
-    function getDebtById(id: string): Debt | undefined {
-      return debts.find((debt) => debt.id === id)
-    }
-  
-    function getTotalDebt(customerId: string): number {
-      return getCustomerDebts(customerId).reduce((total, debt) => total + debt.remainingAmount, 0)
-    }
-  
-    function getOverdueDebts(customerId: string): Debt[] {
-      const today = new Date()
-      return getCustomerDebts(customerId).filter((debt) => debt.status === "overdue" || new Date(debt.dueDate) < today)
-    }
-  
-  
-    */
-  // Funciones de pagos
-  /*function createPayment(payment: Omit<pagos, "id">): Payment {
-    const newPayment: Payment = {
-      ...payment,
-      id: `p${payments.length + 1}`,
-    }
-    payments.push(newPayment)
-    return newPayment
-  }
-
-  function getCustomerPayments(customerId: string): Payment[] {
-    return payments
-      .filter((payment) => payment.customerId === customerId)
-      .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
-  }
-
-  // Cargar deudas cuando se selecciona un cliente
-  useEffect(() => {
-    if (selectedCustomer) {
-      const debts = getCustomerDebts(selectedCustomer.id)
-      const debtSelection = debts
-        .filter((debt) => debt.status !== "paid")
-        .map((debt) => ({
-          debt,
-          amountToPay: debt.remainingAmount,
-          selected: false,
-        }))
-      setSelectedDebts(debtSelection)
-    }
-  }, [selectedCustomer])
-*/
   // Cargar deudas cuando se selecciona un cliente
   useEffect(() => {
     if (selectedClient) {
@@ -452,30 +409,6 @@ export default function ClientsPage() {
     setError("")
   }
 
-  /*const handleDebtSelection = (index: number, selected: boolean) => {
-    const updated = [...selectedDebts]
-    updated[index].selected = selected
-    if (!selected) {
-      updated[index].amountToPay = updated[index].debt.remainingAmount
-    }
-    setSelectedDebts(updated)
-  }
-
-  const handleAmountChange = (index: number, amount: number) => {
-    const updated = [...selectedDebts]
-    const maxAmount = updated[index].debt.remainingAmount
-    updated[index].amountToPay = Math.min(Math.max(0, amount), maxAmount)
-    setSelectedDebts(updated)
-  }
-
-  const getSelectedDebtsTotal = () => {
-    return selectedDebts.filter((item) => item.selected).reduce((sum, item) => sum + item.amountToPay, 0)
-  }
-
-  const getSelectedDebtsCount = () => {
-    return selectedDebts.filter((item) => item.selected).length
-  }*/
-
   //deudas nuevo
   const handleDeudaSelection = (index: number, selected: boolean) => {
     const updated = [...selectedDeudas]
@@ -487,6 +420,70 @@ export default function ClientsPage() {
     }
     setSelectedDeudas(updated)
   }
+
+
+
+    const handleEditClick = (deuda:any) => {
+    setEditingDeuda(deuda)
+    setEditedData({
+      monto: deuda.deu.monto,
+      saldo_pendiente: deuda.deu.saldo_pendiente,
+    })
+  }
+
+
+  const handleAnularClick = async (deudaId:any) => {
+  try {
+    const res = await fetch("/api/caja/modificarDeuda", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id_deuda: deudaId,
+        estado: "ANULADO"
+      })
+    })
+
+    if (!res.ok) throw new Error("Error al anular la deuda")
+    
+    alert("Deuda anulada correctamente")
+    // Aquí podrías actualizar el estado o recargar datos
+  } catch (error) {
+    console.error(error)
+    alert("Error al anular la deuda")
+  }
+}
+
+const handleSaveDeuda = async () => {
+  setIsSubmitting(true)
+  /*try {
+    const res = await fetch("/api/caja/modificarDeuda", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        id_deuda: editingDeuda!.id_deuda,
+        monto: parseFloat(editedData.monto),
+        saldo_pendiente: parseFloat(editedData.saldo_pendiente)
+      })
+    })
+
+    if (!res.ok) throw new Error("Error al modificar la deuda")
+
+    alert("Deuda modificada correctamente")
+    setEditingDeuda(null)
+    // Aquí podrías actualizar el estado o recargar datos
+  } catch (error) {
+    console.error(error)
+    alert("Error al modificar la deuda")
+  } finally {
+    setIsSubmitting(false)
+  }*/
+}
+
+
 
   const handleMontoChange = (index: number, amount: number) => {
     const updated = [...selectedDeudas]
@@ -611,14 +608,6 @@ export default function ClientsPage() {
     }
   }
 
-  /*
-    // Generar número de comprobante
-    function generateReceiptNumber(type: "boleta" | "factura" | "recibo"): string {
-      const prefix = type === "boleta" ? "B001" : type === "factura" ? "F001" : "R001"
-      const count = payments.filter((p) => p.receiptType === type).length + 1
-      return `${prefix}-${count.toString().padStart(5, "0")}`
-    }
-  */
   async function generarNumeroComprobante(id_tipo: number): Promise<{ serie: string; numero: string }> {
     try {
       const res = await fetch(`/api/caja/numeroComprobante?id_tipo=${id_tipo}`);
@@ -637,30 +626,6 @@ export default function ClientsPage() {
     }
   }
 
-  /*
-    // Estadísticas para el dashboard
-    function getDashboardStats() {
-      const totalCustomers = customers.length
-      const activeCustomers = customers.filter((c) => c.status === "active").length
-      const totalDebts = debts.reduce((sum, debt) => sum + debt.remainingAmount, 0)
-      const overdueDebts = debts.filter((d) => d.status === "overdue").length
-      const todayPayments = payments.filter((p) => {
-        const today = new Date()
-        const paymentDate = new Date(p.paymentDate)
-        return paymentDate.toDateString() === today.toDateString()
-      })
-      const todayRevenue = todayPayments.reduce((sum, p) => sum + p.amount, 0)
-  
-      return {
-        totalCustomers,
-        activeCustomers,
-        totalDebts,
-        overdueDebts,
-        todayPayments: todayPayments.length,
-        todayRevenue,
-      }
-    }
-  */
   const handleProcessPayment = async () => {
     setIsProcessing(true)
     setError("")
@@ -728,30 +693,6 @@ export default function ClientsPage() {
   };
 
 
-  /*const handlePrintReceipt = () => {
-    if (receiptRef.current) {
-      const printWindow = window.open("", "_blank")
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Comprobante de Pago - ${processedPayment?.receiptNumber}</title>
-              <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-                @media print { body { margin: 0; } }
-                .no-print { display: none !important; }
-              </style>
-            </head>
-            <body>
-              ${receiptRef.current.innerHTML}
-            </body>
-          </html>
-        `)
-        printWindow.document.close()
-        printWindow.print()
-      }
-    }
-  }*/
   function montoALetras(monto: number): string {
     const formatter = new Intl.NumberFormat('es-PE', {
       style: 'currency',
@@ -1049,286 +990,104 @@ export default function ClientsPage() {
       </Card>
       {/* Debts Selection */}
       <Card className="rounded-md border border-gray-700 bg-gray-800/30">
-        <CardHeader>
-          <CardTitle className="flex items-center text-gray-200">
-            <CreditCard className="h-5 w-5 mr-2" />
-            Seleccionar Deudas a Pagar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {selectedDeudas.length > 0 ? (
-            <div className="space-y-4">
-              {selectedDeudas.map((item, index) => (
-                <div key={item.deu.id_deuda} className="p-3 rounded-md border border-gray-400">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      checked={item.selected}
-                      onCheckedChange={(checked) => handleDeudaSelection(index, checked as boolean)}
-                      className="mt-1 border-gray-400"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium text-white">{item.deu.descripcion}</h4>
-                        </div>
-                        <Badge
-                          variant={
-                            item.deu.estado === "ACTIVO"
-                              ? "destructive"
-                              : item.deu.estado === "RESTANTE"
-                                ? "warning"
-                                : "outline"
-                          }
-                          className="text-xs"
-                        >
-                          {item.deu.estado === "RESTANTE" ? "PENDIENTE" : item.deu.estado}
-                        </Badge>
+      <CardContent className="p-6">
+        <h3 className="text-lg font-medium text-white mb-4">Lista de Deudas</h3>
 
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                        <div>
-                          <Label className="text-xs text-gray-200">Monto Total</Label>
-                          <p className="font-semibold text-white">S/ {Number(item.deu.monto).toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-gray-200">Saldo Pendiente</Label>
-                          <p className="font-semibold text-red-600">S/ {Number(item.deu.saldo_pendiente).toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <Label htmlFor={`amount-${index}`} className="text-xs text-gray-200">
-                            Monto a Pagar
-                          </Label>
-                          <Input
-                            id={`amount-${index}`}
-                            type="number"
-                            min="0"
-                            max={item.deu.saldo_pendiente}
-                            step="0.01"
-                            value={item.selected ? item.amountToPay ?? "" : ""}
-                            onChange={(e) => handleMontoChange(index, parseFloat(e.target.value) || 0)}
-                            disabled={!item.selected}
-                            className="text-right bg-gray-700/50 border-gray-600 text-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <Separator />
-              <div className="flex items-center justify-between ">
-                <div>
-                  <p className="font-medium text-white">Total a Pagar</p>
-                  <p className="text-sm text-gray-300">{getSelectedDeudasCount()} deuda(s) seleccionada(s)</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-blue-600">S/ {getSelectedDeudasTotal().toFixed(2)}</p>
-                </div>
-              </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex justify-end">
-                <Button className="bg-gray-200 text-gray-700 hover:bg-gray-500 hover:text-white" onClick={handleContinueToPayment} disabled={getSelectedDeudasCount() === 0}>
-                  Continuar al Pago
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-100 mb-2">Sin deudas pendientes</h3>
-              <p className="text-gray-300">Este cliente está al día con sus pagos</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-
-  const renderPaymentDetailsStep = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* Payment Summary */}
-      <Card className="rounded-md border border-gray-700 bg-gray-800/30">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between text-gray-200">
-            <div className="flex items-center">
-              <Calculator className="h-5 w-5 mr-2" />
-              Resumen del Pago
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setCurrentStep("select-debts")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 text-white">
-            <div className="flex justify-between items-center">
-              <span>Cliente:</span>
-              {selectedClient?.cli_tipo === "NATURAL" ? (
-                <>
-                  <span className="font-medium">{selectedClient?.cli_nombre} {selectedClient?.cli_apellido}</span>
-                </>
-              ) : (
-                <>
-                  <span className="font-medium">{selectedClient?.cli_razonsoci}</span>
-                </>
-              )
-              }
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Deudas seleccionadas:</span>
-              <span className="font-medium">{getSelectedDeudasCount()}</span>
-            </div>
-            <Separator />
-
-            {selectedDeudas.filter((deudas) => deudas.selected === true).map((deudas) =>
-              <div key={deudas.deu.id_deuda} className="flex justify-between items-center">
-                <span>{deudas.deu.descripcion}</span>
-                <span className="font-medium">{deudas.amountToPay}</span>
-              </div>
-            )}
-            <Separator />
-            <div className="flex justify-between items-center text-lg">
-              <span className="font-semibold">Total a pagar:</span>
-              <span className="font-bold text-blue-600">S/ {getSelectedDeudasTotal().toFixed(2)}</span>
-            </div>
+        {selectedDeudas.length === 0 ? (
+          <p className="text-center text-gray-300">No hay deudas registradas.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-white">
+              <thead>
+                <tr className="text-left border-b border-gray-600">
+                  <th className="p-2">Descripción</th>
+                  <th className="p-2">Monto Total</th>
+                  <th className="p-2">Saldo Pendiente</th>
+                  <th className="p-2">Estado</th>
+                  <th className="p-2">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedDeudas.map((deuda) => (
+                  <tr key={deuda.deu.id_deuda} className="border-b border-gray-700">
+                    <td className="p-2">{deuda.deu.descripcion}</td>
+                    <td className="p-2">S/ {Number(deuda.deu.monto).toFixed(2)}</td>
+                    <td className="p-2 text-red-500">S/ {Number(deuda.deu.saldo_pendiente).toFixed(2)}</td>
+                    <td className="p-2">
+                      <Badge
+                        variant={
+                          deuda.deu.estado === "ACTIVO"
+                            ? "destructive"
+                            : deuda.deu.estado === "RESTANTE"
+                              ? "warning"
+                              : "outline"
+                        }
+                        className="text-xs"
+                      >
+                        {deuda.deu.estado === "RESTANTE" ? "PENDIENTE" : deuda.deu.estado}
+                      </Badge>
+                    </td>
+                    <td className="p-2 space-x-2">
+                      <Button className="bg-gray-500 hover:bg-gray-700" size="sm" onClick={() => handleEditClick(deuda)}>
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Modificar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleAnularClick(deuda.deu.id_deuda)}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Anular
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </CardContent>
 
-      {/* Payment Details */}
-      <Card className="rounded-md border border-gray-700 bg-gray-800/30">
-        <CardHeader>
-          <CardTitle className="flex items-center text-gray-200">
-            <Receipt className="h-5 w-5 mr-2" />
-            Detalles del Pago
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-white">
-            <div>
-              <Label htmlFor="payment-method">Método de Pago</Label>
-              <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                <SelectTrigger className="bg-gray-800 border-gray-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                  <SelectItem value="efectivo">Efectivo</SelectItem>
-                  <SelectItem value="yape">Yape</SelectItem>
-                  <SelectItem value="transferencia">Transferencia Bancaria</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="receipt-type">Tipo de Comprobante</Label>
-              <Select value={receiptType} onValueChange={(value: any) => setReceiptType(value)}>
-                <SelectTrigger className="bg-gray-800 border-gray-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                  <SelectItem value="boleta">Boleta de Venta</SelectItem>
-                  <SelectItem value="factura">Factura</SelectItem>
-                  <SelectItem value="recibo">Recibo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex justify-end space-x-3">
-            <Button variant="outline" onClick={() => setCurrentStep("select-debts")} className="bg-transparent border-none text-white">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-            <Button className="bg-gray-200 text-gray-700 hover:bg-gray-500 hover:text-white" onClick={handleProcessPayment} disabled={isProcessing}>
-              {isProcessing ? "Procesando..." : "Procesar Pago"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-
-  const renderConfirmationStep = () => (
-    <div className="space-y-6">
-      <Card className="rounded-md border border-gray-700 bg-gray-800/30">
-        <CardHeader>
-          <CardTitle className="flex items-center text-green-600">
-            <CheckCircle className="h-5 w-5 mr-2" />
-            Pago Procesado Exitosamente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 bg-green-50/5 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-2">Comprobante Generado</h3>
-              <p className="text-green-700">
-                N° {pagoProcesado?.cod_comprobante}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Modal de Edición */}
+      {editingDeuda && (
+        <Dialog open={true} onOpenChange={() => setEditingDeuda(null)}>
+          <DialogContent className="bg-gray-800 border border-gray-600 text-white">
+            <DialogTitle>Modificar Deuda</DialogTitle>
+            <div className="space-y-4 mt-2">
               <div>
-                <Label className="text-sm text-gray-200">Cliente</Label>
-                {selectedClient?.cli_tipo === "NATURAL" ? (
-                  <>
-                    <p className="font-medium text-gray-400">{selectedClient?.cli_nombre}{selectedClient?.cli_apellido}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-medium text-gray-400">{selectedClient?.cli_razonsoci}{selectedClient?.cli_apellido}</p>
-                  </>
-                )
-                }
+                <Label>Monto Total</Label>
+                <Input
+                  type="number"
+                  value={editedData.monto}
+                  onChange={(e) => setEditedData({ ...editedData, monto: e.target.value })}
+                  className="bg-gray-700 text-white border-gray-500"
+                />
               </div>
               <div>
-                <Label className="text-sm text-gray-200">Monto Pagado</Label>
-                <p className="font-medium text-green-600">S/ {pagoProcesado?.monto_total}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-200">Método de Pago</Label>
-                <p className="font-medium text-gray-400">{pagoProcesado?.medio_pago}</p>
-              </div>
-              <div>
-                <Label className="text-sm text-gray-200">Fecha</Label>
-                <p className="font-medium text-gray-400">
-                  {pagoProcesado?.fecha_emision
-                    ? new Date(pagoProcesado.fecha_emision).toLocaleDateString("es-PE")
-                    : ""}
-                </p>
+                <Label>Saldo Pendiente</Label>
+                <Input
+                  type="number"
+                  value={editedData.saldo_pendiente}
+                  onChange={(e) => setEditedData({ ...editedData, saldo_pendiente: e.target.value })}
+                  className="bg-gray-700 text-white border-gray-500"
+                />
               </div>
             </div>
-
-            <div className="flex justify-center space-x-4 pt-4">
-              <Button onClick={handlePrintReceipt} className="bg-white text-black hover:bg-gray-700 hover:text-white">
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimir Comprobante
+            <DialogFooter className="mt-4">
+              <Button onClick={() => setEditingDeuda(null)} variant="ghost">
+                Cancelar
               </Button>
-              <Button onClick={handleNewPayment} className="bg-white text-black hover:bg-gray-700 hover:text-white">
-                Nuevo Pago
+              <Button onClick={handleSaveDeuda} disabled={isSubmitting}>
+                {isSubmitting ? "Guardando..." : "Guardar"}
               </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </Card>
     </div>
   )
-
 
 
   return (
@@ -1350,59 +1109,115 @@ export default function ClientsPage() {
               <CardHeader>
                 {/* Header */}
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-100 mb-2">Pasarela de Cobranza</h1>
-                  <p className="text-gray-300">Procesa pagos de servicios de telecomunicaciones</p>
+                  <h1 className="text-3xl font-bold text-gray-100 mb-2">Generar deuda masiva</h1>
+                  <p className="text-gray-300">Genera deuda de las mensualidades a los usuarios</p>
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Progress Steps */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-center space-x-4">
-                    {[
-                      { key: "search", label: "Buscar Cliente", icon: Search },
-                      { key: "select-debts", label: "Seleccionar Deudas", icon: CreditCard },
-                      { key: "payment-details", label: "Detalles de Pago", icon: Receipt },
-                      { key: "confirmation", label: "Confirmación", icon: CheckCircle },
-                    ].map((step, index) => {
-                      const Icon = step.icon
-                      const isActive = currentStep === step.key
-                      const isCompleted =
-                        (currentStep === "select-debts" && step.key === "search") ||
-                        (currentStep === "payment-details" && ["search", "select-debts"].includes(step.key)) ||
-                        (currentStep === "confirmation" && ["search", "select-debts", "payment-details"].includes(step.key))
 
-                      return (
-                        <div key={step.key} className="flex items-center">
-                          <div
-                            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${isActive
-                              ? "border-blue-600 bg-blue-600 text-white"
-                              : isCompleted
-                                ? "border-green-600 bg-green-600 text-white"
-                                : "border-gray-400  text-gray-400"
-                              }`}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <span
-                            className={`ml-2 text-sm font-medium ${isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
-                              }`}
-                          >
-                            {step.label}
-                          </span>
-                          {index < 3 && <ArrowRight className="h-4 w-4 text-gray-300 mx-4" />}
-                        </div>
-                      )
-                    })}
+                <div className="flex flex-row items-end gap-4 justify-center">
+                  {/* MES */}
+                  <div className="flex flex-col">
+                    <label className="text-sm text-gray-300 mb-1">Mes</label>
+                    <Select value={mes.toString()} onValueChange={(value) => setMes(Number(value))}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-40">
+                        <SelectValue placeholder="Seleccionar mes" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        {meses.map((m) => (
+                          <SelectItem key={m.valor} value={m.valor.toString()}>
+                            {m.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* AÑO */}
+                  <div className="flex flex-col">
+                    <label className="text-sm text-gray-300 mb-1">Año</label>
+                    <Select value={anio.toString()} onValueChange={(value) => setAnio(Number(value))}>
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-32">
+                        <SelectValue placeholder="Seleccionar año" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                        {años.map((a) => (
+                          <SelectItem key={a} value={a.toString()}>
+                            {a}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* BOTÓN */}
+                  <div>
+                    <Button
+                      onClick={generarDeuda}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Generar
+                    </Button>
                   </div>
                 </div>
-
-                {/* Step Content */}
-                {currentStep === "search" && renderSearchStep()}
-                {currentStep === "select-debts" && renderSelectDebtsStep()}
-                {currentStep === "payment-details" && renderPaymentDetailsStep()}
-                {currentStep === "confirmation" && renderConfirmationStep()}
               </CardContent>
             </Card>
+            {userRole === "ADMINISTRADOR" && (
+              <>
+                <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                  <CardHeader>
+                    {/* Header */}
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-100 mb-2">Gestionar deudas</h1>
+                      <p className="text-gray-300">Modifica y/o anula deudas</p>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Progress Steps */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-center space-x-4">
+                        {[
+                          { key: "search", label: "Buscar Cliente", icon: Search },
+                          { key: "select-debts", label: "Gestionar Deudas", icon: CreditCard },
+                        ].map((step, index) => {
+                          const Icon = step.icon
+                          const isActive = currentStep === step.key
+                          const isCompleted =
+                            (currentStep === "select-debts" && step.key === "search") ||
+                            (currentStep === "payment-details" && ["search", "select-debts"].includes(step.key))
+                          return (
+                            <div key={step.key} className="flex items-center">
+                              <div
+                                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${isActive
+                                  ? "border-blue-600 bg-blue-600 text-white"
+                                  : isCompleted
+                                    ? "border-green-600 bg-green-600 text-white"
+                                    : "border-gray-400  text-gray-400"
+                                  }`}
+                              >
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <span
+                                className={`ml-2 text-sm font-medium ${isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
+                                  }`}
+                              >
+                                {step.label}
+                              </span>
+                              {index < 1 && <ArrowRight className="h-4 w-4 text-gray-300 mx-4" />}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Step Content */}
+                    {currentStep === "search" && renderSearchStep()}
+                    {currentStep === "select-debts" && renderSelectDebtsStep()}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+
           </div>
         </div>
       </SidebarInset>

@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Navbar } from "@/components/navarDistribucion"
+
 import {
   Dialog,
   DialogContent,
@@ -153,8 +155,9 @@ export default function ClientsPage() {
           <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-700 bg-gray-800/50 backdrop-blur-xl px-4">
             <SidebarTrigger className="-ml-1 text-white" />
             <div className="flex-1">
-              <h1 className="text-xl font-semibold text-white">Distribución de la RED / NODOS / CAJAS</h1>
+              <h1 className="text-xl font-semibold text-white">Distribución de la RED</h1>
             </div>
+            <Navbar />
           </header>
 
           <div className="flex-1 space-y-6 p-6">

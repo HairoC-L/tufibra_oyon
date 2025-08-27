@@ -93,22 +93,22 @@ export function AppSidebar() {
             url: "/distribucion",
             icon: Map,
           },
-          {
+          /*{
             title: "Usuarios",
             url: "/usuarios",
             icon: User,
           },
-          /*{
+          {
             title: "Reportes",
             url: "/reportes",
             icon: BarChart3,
-          },*/
-          /*{
+          },
+          {
             title: "Órdenes de Trabajo",
             url: "/orders",
             icon: FileText,
           },
-          {
+          /*{
             title: "Seguimiento",
             url: "/tracking",
             icon: MapPin,

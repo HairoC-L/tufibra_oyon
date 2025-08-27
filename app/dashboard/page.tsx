@@ -230,7 +230,7 @@ export default function DashboardPage() {
                       <p className="text-2xl font-bold text-white">
                         {
                           clients.filter((c) => {
-                            const regDate = new Date(c.fecha_registro)
+                            const regDate = new Date(c.fecha_inicio)
                             const now = new Date()
                             return regDate.getMonth() === now.getMonth() && regDate.getFullYear() === now.getFullYear()
                           }).length
