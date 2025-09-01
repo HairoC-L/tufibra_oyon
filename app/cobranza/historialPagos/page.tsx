@@ -9,20 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/navarcobranza"
 import { useSearchParams } from "next/navigation"
+//import { customers, debts, payments, users } from "@/lib/database"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Receipt, Search, XCircle, Pencil, CreditCard, ArrowLeft, Printer, Download, ArrowRight
+  Receipt, Search, CheckCircle, Calculator, CreditCard, ArrowLeft, Printer, Download, ArrowRight
   , AlertTriangle, User
 } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ReceiptPreview } from "@/components/receipt-preview"
@@ -181,29 +174,6 @@ interface SelectedDebt {
   selected: boolean
 }
 
-interface SelectedDeudas {
-  deu: deuda
-  amountToPay: number
-  selected: boolean
-}
-
-const meses = [
-  { nombre: 'ENERO', valor: 1 },
-  { nombre: 'FEBRERO', valor: 2 },
-  { nombre: 'MARZO', valor: 3 },
-  { nombre: 'ABRIL', valor: 4 },
-  { nombre: 'MAYO', valor: 5 },
-  { nombre: 'JUNIO', valor: 6 },
-  { nombre: 'JULIO', valor: 7 },
-  { nombre: 'AGOSTO', valor: 8 },
-  { nombre: 'SEPTIEMBRE', valor: 9 },
-  { nombre: 'OCTUBRE', valor: 10 },
-  { nombre: 'NOVIEMBRE', valor: 11 },
-  { nombre: 'DICIEMBRE', valor: 12 },
-];
-
-const años = [2025, 2026];
-
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -216,13 +186,12 @@ export default function ClientsPage() {
 
   const [pagos, setPagos] = useState<pagos[]>([])
   const [detallePago, setDetallePago] = useState<detallePago[]>([]);
+
+
+  const [serie, setSerie] = useState("");
+  const [numero, setNumero] = useState("");
+  const [selectedTipo, setSelectedTipo] = useState("");
   const [id_user, setIdUser] = useState("");
-  const [userRole, setUserRole] = useState("");
-
-  const currentYear = new Date().getFullYear();
-  const [mes, setMes] = useState(1);
-  const [anio, setAnio] = useState(currentYear);
-
 
   const [showDetalleComprobante, setShowDetalleComprobante] = useState(false);
   const [newPago, setNewPago] = useState({
@@ -235,23 +204,6 @@ export default function ClientsPage() {
     id_user: id_user,
   })
 
-  const generarDeuda = async () => {
-    try {
-      const res = await fetch('/api/caja/deudaMasiva', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mes, anio }),
-      });
-
-      if (!res.ok) throw new Error('Error al generar deuda');
-
-      const data = await res.json();
-      toast.success('Deuda generada correctamente');
-    } catch (error) {
-      console.error(error);
-      toast.error('Error al generar deuda');
-    }
-  };
 
   function searchClientes(query: string): Client[] {
     if (!query.trim()) return clients
@@ -314,7 +266,7 @@ export default function ClientsPage() {
   useEffect(() => {
     fetchClients();
     fetchDeudas();
-    setUserRole(localStorage.getItem("userRole") || "")
+    fetchPagos();
   }, []);
 
 
@@ -366,35 +318,25 @@ export default function ClientsPage() {
 
   const [error, setError] = useState("")
 
-
-    const [editingDeuda, setEditingDeuda] = useState(null)
-  const [editedData, setEditedData] = useState({ monto: "", saldo_pendiente: "" })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   //  const customers = searchCustomers(searchQuery)
   const clientes_filtrados = searchClientes(searchQuery)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
-  const [selectedDeudas, setSelectedDeudas] = useState<SelectedDeudas[]>([])
+  const [selectedPagos, setSelectedPagos] = useState<pagos[]>([])
 
   // Cargar deudas cuando se selecciona un cliente
   useEffect(() => {
     if (selectedClient) {
-      const deudas = getDeudaClientes(selectedClient.num_con)
-      const deudasSelection = deudas
-        .filter((deu) => deu.estado !== "PAGADO" && deu.estado !== "ANULADO")
-        .map((deu) => ({
-          deu,
-          amountToPay: deu.monto,
-          selected: false,
-        }))
-      setSelectedDeudas(deudasSelection)
+      const pagos = getPagosCliente(selectedClient.num_con)
+      const pagossSelection = pagos
+        .filter((pag) => pag.estado !== "ANULADO")
+      setSelectedPagos(pagossSelection)
     }
   }, [selectedClient])
 
-  function getDeudaClientes(num_con: string): deuda[] {
-    return deudas
-      .filter((deu) => deu.num_con === num_con)
-      .sort((a, b) => new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime())
+  function getPagosCliente(num_con: string): pagos[] {
+    return pagos
+      .filter((pag) => pag.num_con === num_con)
+      .sort((a, b) => new Date(a.fecha_emision).getTime() - new Date(b.fecha_emision).getTime())
   }
 
   const handleCustomerSelect = (customer: Customer) => {
@@ -409,124 +351,61 @@ export default function ClientsPage() {
     setError("")
   }
 
-  //deudas nuevo
-  const handleDeudaSelection = (index: number, selected: boolean) => {
-    const updated = [...selectedDeudas]
-    updated[index].selected = selected
-    if (selected) {
-      updated[index].amountToPay = updated[index].deu.saldo_pendiente;
-    } else {
-      updated[index].amountToPay = 0;
+  /*
+    //deudas nuevo
+    const handleDeudaSelection = (index: number, selected: boolean) => {
+      const updated = [...selectedPagos]
+      updated[index].selected = selected
+      if (selected) {
+        updated[index].amountToPay = updated[index].deu.saldo_pendiente;
+      } else {
+        updated[index].amountToPay = 0;
+      }
+      setSelectedPagos(updated)
     }
-    setSelectedDeudas(updated)
-  }
-
-
-
-    const handleEditClick = (deuda:any) => {
-    setEditingDeuda(deuda)
-    setEditedData({
-      monto: deuda.deu.monto,
-      saldo_pendiente: deuda.deu.saldo_pendiente,
-    })
-  }
-
-
-  const handleAnularClick = async (deudaId:any) => {
-  try {
-    const res = await fetch("/api/caja/modificarDeuda", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id_deuda: deudaId,
-        estado: "ANULADO"
-      })
-    })
-
-    if (!res.ok) throw new Error("Error al anular la deuda")
-    
-    alert("Deuda anulada correctamente")
-    // Aquí podrías actualizar el estado o recargar datos
-  } catch (error) {
-    console.error(error)
-    alert("Error al anular la deuda")
-  }
-}
-
-const handleSaveDeuda = async () => {
-  setIsSubmitting(true)
-  /*try {
-    const res = await fetch("/api/caja/modificarDeuda", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id_deuda: editingDeuda!.id_deuda,
-        monto: parseFloat(editedData.monto),
-        saldo_pendiente: parseFloat(editedData.saldo_pendiente)
-      })
-    })
-
-    if (!res.ok) throw new Error("Error al modificar la deuda")
-
-    alert("Deuda modificada correctamente")
-    setEditingDeuda(null)
-    // Aquí podrías actualizar el estado o recargar datos
-  } catch (error) {
-    console.error(error)
-    alert("Error al modificar la deuda")
-  } finally {
-    setIsSubmitting(false)
-  }*/
-}
-
-
-
-  const handleMontoChange = (index: number, amount: number) => {
-    const updated = [...selectedDeudas]
-    const maxAmount = updated[index].deu.saldo_pendiente
-    updated[index].amountToPay = Math.min(Math.max(0, amount), maxAmount)
-    setSelectedDeudas(updated)
-  }
-
-  const getSelectedDeudasTotal = () => {
-    return selectedDeudas
-      .filter((item) => item.selected)
-      .reduce((sum, item) => sum + Number(item.amountToPay || 0), 0);
-  };
-
-
-  const getSelectedDeudasCount = () => {
-    return selectedDeudas.filter((item) => item.selected).length
-  }
-
-
-
-
-
-  const handleContinueToPayment = () => {
-    const selectedCount = getSelectedDeudasCount()
-    if (selectedCount === 0) {
-      setError("Debes seleccionar al menos una deuda para continuar")
-      return
+  
+    const handleMontoChange = (index: number, amount: number) => {
+      const updated = [...selectedPagos]
+      const maxAmount = updated[index].deu.saldo_pendiente
+      updated[index].amountToPay = Math.min(Math.max(0, amount), maxAmount)
+      setSelectedPagos(updated)
     }
-    setError("")
-    setCurrentStep("payment-details")
-  }
-
+  
+    const getselectedPagosTotal = () => {
+      return selectedPagos
+        .filter((item) => item.selected)
+        .reduce((sum, item) => sum + Number(item.amountToPay || 0), 0);
+    };
+  
+  
+    const getselectedPagosCount = () => {
+      return selectedPagos.filter((item) => item.selected).length
+    }
+  
+  
+  
+  
+  
+    const handleContinueToPayment = () => {
+      const selectedCount = getselectedPagosCount()
+      if (selectedCount === 0) {
+        setError("Debes seleccionar al menos una deuda para continuar")
+        return
+      }
+      setError("")
+      setCurrentStep("payment-details")
+    }
+  */
 
   async function processPayment(
     num_con: string,
-    selectedDeudass: { id_deuda: string; amount: number; deuda: deuda }[],
+    selectedPagoss: { id_deuda: string; amount: number; deuda: deuda }[],
     paymentMethod: "efectivo" | "yape" | "transferencia",
     receiptType: "boleta" | "factura" | "recibo",
     id_usuario: string,
   ): Promise<{ success: boolean; cod_comprobante: string; error?: string }> {
     try {
-      const totalAmount = selectedDeudass.reduce((sum, item) => sum + Number(item.amount), 0);
+      const totalAmount = selectedPagoss.reduce((sum, item) => sum + Number(item.amount), 0);
 
       // Obtener tipo
       let id_tipo_com: number;
@@ -549,7 +428,7 @@ const handleSaveDeuda = async () => {
           num_con,
           id_user: id_usuario,
         },
-        selectedDeudass.map((item) => ({
+        selectedPagoss.map((item) => ({
           ...item,
           id_deuda: item.deuda.id_deuda || "",
           descripcion: item.deuda.descripcion || "",
@@ -625,56 +504,56 @@ const handleSaveDeuda = async () => {
       return { serie: "ERROR", numero: "00000000" }; // Puedes lanzar error o retornar algo más útil según el caso
     }
   }
-
-  const handleProcessPayment = async () => {
-    setIsProcessing(true)
-    setError("")
-
-    try {
-      const selectedItems = selectedDeudas
-        .filter((item) => item.selected)
-        .map((item) => ({
-          id_deuda: item.deu.id_deuda.toString(),
-          amount: item.amountToPay,
-          deuda: item.deu
-        }))
-
-      const result = await processPayment(
-        selectedClient!.num_con,
-        selectedItems,
-        paymentMethod,
-        receiptType,
-        id_user,
-      );
-
-      if (result.success && result.cod_comprobante) {
-        // Esperar a que se carguen los pagos frescos
-        const res = await fetch("/api/caja/pagos");
-        const data: pagos[] = await res.json();
-
-        const numero_comprobante = result.cod_comprobante;
-
-        // Buscar el pago en los datos recién obtenidos
-        const pago_realizado = data.find((pago) => pago.cod_comprobante === numero_comprobante) || null;
-
-        // Actualizar estados
-        setPagos(data);
-        setpagoProcesado(pago_realizado);
-        setCurrentStep("confirmation");
-      } else {
-        setError(result.error || "Error al procesar el pago");
+  /*
+    const handleProcessPayment = async () => {
+      setIsProcessing(true)
+      setError("")
+  
+      try {
+        const selectedItems = selectedPagos
+          .filter((item) => item.selected)
+          .map((item) => ({
+            id_deuda: item.deu.id_deuda.toString(),
+            amount: item.amountToPay,
+            deuda: item.deu
+          }))
+  
+        const result = await processPayment(
+          selectedClient!.num_con,
+          selectedItems,
+          paymentMethod,
+          receiptType,
+          id_user,
+        );
+  
+        if (result.success && result.cod_comprobante) {
+          // Esperar a que se carguen los pagos frescos
+          const res = await fetch("/api/caja/pagos");
+          const data: pagos[] = await res.json();
+  
+          const numero_comprobante = result.cod_comprobante;
+  
+          // Buscar el pago en los datos recién obtenidos
+          const pago_realizado = data.find((pago) => pago.cod_comprobante === numero_comprobante) || null;
+  
+          // Actualizar estados
+          setPagos(data);
+          setpagoProcesado(pago_realizado);
+          setCurrentStep("confirmation");
+        } else {
+          setError(result.error || "Error al procesar el pago");
+        }
+      } catch (err) {
+        setError("Error inesperado al procesar el pago")
+      } finally {
+        setIsProcessing(false)
       }
-    } catch (err) {
-      setError("Error inesperado al procesar el pago")
-    } finally {
-      setIsProcessing(false)
     }
-  }
-
+  */
   const handleNewPayment = () => {
     setCurrentStep("search")
     setSelectedClient(null)
-    setSelectedDeudas([])
+    setSelectedPagos([])
     setPaymentMethod("efectivo")
     setReceiptType("boleta")
     setpagoProcesado(null)
@@ -682,17 +561,15 @@ const handleSaveDeuda = async () => {
     setSearchQuery("")
   }
 
-  const resetearSelectedDeudas = () => {
-    const updated = selectedDeudas.map((deuda) => ({
+  const resetearselectedPagos = () => {
+    const updated = selectedPagos.map((deuda) => ({
       ...deuda,
       selected: false,
       amountToPay: 0,
     }));
 
-    setSelectedDeudas(updated);
+    setSelectedPagos(updated);
   };
-
-
   function montoALetras(monto: number): string {
     const formatter = new Intl.NumberFormat('es-PE', {
       style: 'currency',
@@ -718,10 +595,10 @@ const handleSaveDeuda = async () => {
   }
 
 
-  const handlePrintReceipt = async () => {
+  const handlePrintReceipt = async (cod_comprobante_rein: string) => {
     try {
 
-      const res = await fetch(`/api/caja/impresion?cod_comprobante=${pagoProcesado?.cod_comprobante}`);
+      const res = await fetch(`/api/caja/impresion?cod_comprobante=${cod_comprobante_rein}`);
       const data = await res.json();
 
       if (!data || data.message) {
@@ -749,8 +626,6 @@ const handleSaveDeuda = async () => {
       const fechaFormateada = formatearFechaUTCString(data.fecha_emision);
 
 
-
-
       const printWindow = window.open('', '', 'width=400,height=600');
 
       if (printWindow) {
@@ -759,12 +634,16 @@ const handleSaveDeuda = async () => {
           <head>
             <title>Comprobante</title>
             <style>
+              @page {
+                size: 80mm auto; /* Ajusta al tamaño de tu papel (ej: 80mm ancho de rollo térmico) */
+                margin: 0; /* Elimina márgenes de impresión */
+              }
               body {
                 font-family: Arial, sans-serif;
-                width: 80mm;
-                margin: 0 auto;
-                padding: 0px;
-                font-size: 12px;
+                width: 80mm; /* ancho estándar boleta térmica */
+                margin: 0; /* elimina márgenes laterales */
+                padding: 5px; /* pequeño padding interno */
+                font-size: 14px; /* sube tamaño de letra */
               }
               .center {
                 text-align: center;
@@ -773,25 +652,21 @@ const handleSaveDeuda = async () => {
                 font-weight: bold;
               }
               .section {
-                margin: 10px 0;
+                margin: 8px 0;
               }
               .table {
                 width: 100%;
                 border-collapse: collapse;
-                font-size: 18px;
-                font-family: Arial, sans-serif;
+                font-size: 13px;
               }
-                
               .table th, .table td {
                 text-align: left;
-                padding: 2px 0;
+                padding: 3px 0;
               }
               .line {
                 border-top: 1px dashed #000;
-                margin: 6px 0;
+                margin: 5px 0;
               }
-                
-
             </style>
           </head>
           <body>
@@ -799,8 +674,8 @@ const handleSaveDeuda = async () => {
             <div class="center">AV. HUANUCO - OYON</div>
             <div class="center">RUC: 20537026945</div>
             <div class="center">Telf: 935671661</div>
-            <div class="center" style="margin-top: 10px;">
-              <img src="/logo_impresion.webp" alt="Logo" width="120" />
+            <div class="center" style="margin-top: 8px;">
+              <img src="/logo_impresion.webp" alt="Logo" width="100" />
             </div>
             <div class="line"></div>
             <div class="center bold">${tipo_comprobante.toUpperCase()} ELECTRÓNICA</div>
@@ -831,16 +706,15 @@ const handleSaveDeuda = async () => {
                 `).join('')}
               </tbody>
             </table>
-
             <div class="line"></div>
             <div style="text-align: right; font-weight: bold; margin-top: 5px;">
               Total: S/. ${Number(monto_total).toFixed(2)}
             </div>
             <div><strong>Son:</strong> ${montoALetras(Number(monto_total))}</div>
-
             <div class="center"><strong>Cajero:</strong> ${cajero}</div>
           </body>
         </html>
+
       `);
 
         printWindow.document.close();
@@ -948,7 +822,7 @@ const handleSaveDeuda = async () => {
     </div>
   )
 
-  const renderSelectDebtsStep = () => (
+  const renderPagos = () => (
     <div className="space-y-6">
       {/* Customer Info */}
       <Card className="rounded-md border-none bg-gray-800/30">
@@ -958,7 +832,14 @@ const handleSaveDeuda = async () => {
               <User className="h-5 w-5 mr-2" />
               Cliente Seleccionado
             </div>
-            <Button variant="ghost" size="sm" onClick={() => { setCurrentStep("search"); resetearSelectedDeudas(); }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCurrentStep("search");
+                resetearselectedPagos();
+              }}
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Cambiar
             </Button>
@@ -969,16 +850,19 @@ const handleSaveDeuda = async () => {
             <div>
               {selectedClient?.cli_tipo === "NATURAL" ? (
                 <>
-                  <h2 className="font-semibold text-lg text-gray-100">{selectedClient?.cli_nombre} {selectedClient?.cli_apellido}</h2>
+                  <h2 className="font-semibold text-lg text-gray-100">
+                    {selectedClient?.cli_nombre} {selectedClient?.cli_apellido}
+                  </h2>
                   <p className="text-gray-300">DNI: {selectedClient?.cli_dni}</p>
                 </>
               ) : (
                 <>
-                  <h3 className="font-semibold text-lg text-gray-100">{selectedClient?.cli_razonsoci}</h3>
+                  <h3 className="font-semibold text-lg text-gray-100">
+                    {selectedClient?.cli_razonsoci}
+                  </h3>
                   <p className="text-gray-300">RUC: {selectedClient?.cli_ruc}</p>
                 </>
-              )
-              }
+              )}
               <p className="text-gray-300">CEL: {selectedClient?.cli_cel}</p>
             </div>
             <div>
@@ -988,104 +872,54 @@ const handleSaveDeuda = async () => {
           </div>
         </CardContent>
       </Card>
-      {/* Debts Selection */}
+
+      {/* Tabla de Pagos Realizados */}
       <Card className="rounded-md border border-gray-700 bg-gray-800/30">
-      <CardContent className="p-6">
-        <h3 className="text-lg font-medium text-white mb-4">Lista de Deudas</h3>
-
-        {selectedDeudas.length === 0 ? (
-          <p className="text-center text-gray-300">No hay deudas registradas.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-white">
-              <thead>
-                <tr className="text-left border-b border-gray-600">
-                  <th className="p-2">Descripción</th>
-                  <th className="p-2">Monto Total</th>
-                  <th className="p-2">Saldo Pendiente</th>
-                  <th className="p-2">Estado</th>
-                  <th className="p-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedDeudas.map((deuda) => (
-                  <tr key={deuda.deu.id_deuda} className="border-b border-gray-700">
-                    <td className="p-2">{deuda.deu.descripcion}</td>
-                    <td className="p-2">S/ {Number(deuda.deu.monto).toFixed(2)}</td>
-                    <td className="p-2 text-red-500">S/ {Number(deuda.deu.saldo_pendiente).toFixed(2)}</td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          deuda.deu.estado === "ACTIVO"
-                            ? "destructive"
-                            : deuda.deu.estado === "RESTANTE"
-                              ? "warning"
-                              : "outline"
-                        }
-                        className="text-xs"
-                      >
-                        {deuda.deu.estado === "RESTANTE" ? "PENDIENTE" : deuda.deu.estado}
-                      </Badge>
-                    </td>
-                    <td className="p-2 space-x-2">
-                      <Button className="bg-gray-500 hover:bg-gray-700" size="sm" onClick={() => handleEditClick(deuda)}>
-                        <Pencil className="h-4 w-4 mr-1" />
-                        Modificar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleAnularClick(deuda.deu.id_deuda)}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Anular
-                      </Button>
-                    </td>
+        <CardHeader>
+          <CardTitle className="text-gray-100">Pagos Realizados</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {selectedPagos.length === 0 ? (
+            <p className="text-gray-400 text-sm">No hay pagos registrados para este cliente.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left text-gray-300">
+                <thead className="bg-gray-700 text-gray-200">
+                  <tr>
+                    <th className="px-4 py-2">N° Comprobante</th>
+                    <th className="px-4 py-2">Fecha</th>
+                    <th className="px-4 py-2">Medio de Pago</th>
+                    <th className="px-4 py-2">Monto Total</th>
+                    <th className="px-4 py-2">Reeimprimir</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-
-      {/* Modal de Edición */}
-      {editingDeuda && (
-        <Dialog open={true} onOpenChange={() => setEditingDeuda(null)}>
-          <DialogContent className="bg-gray-800 border border-gray-600 text-white">
-            <DialogTitle>Modificar Deuda</DialogTitle>
-            <div className="space-y-4 mt-2">
-              <div>
-                <Label>Monto Total</Label>
-                <Input
-                  type="number"
-                  value={editedData.monto}
-                  onChange={(e) => setEditedData({ ...editedData, monto: e.target.value })}
-                  className="bg-gray-700 text-white border-gray-500"
-                />
-              </div>
-              <div>
-                <Label>Saldo Pendiente</Label>
-                <Input
-                  type="number"
-                  value={editedData.saldo_pendiente}
-                  onChange={(e) => setEditedData({ ...editedData, saldo_pendiente: e.target.value })}
-                  className="bg-gray-700 text-white border-gray-500"
-                />
-              </div>
+                </thead>
+                <tbody className="divide-y divide-gray-600">
+                  {selectedPagos.map((pago) => (
+                    <tr key={pago.cod_comprobante}>
+                      <td className="px-4 py-2">
+                        {pago.serie}-{pago.correlativo.toString().padStart(6, "0")}
+                      </td>
+                      <td className="px-4 py-2">
+                        {pago.fecha_emision.toString().replace("T", " ").replace(".000Z", "")}
+                      </td>                      <td className="px-4 py-2 capitalize">{pago.medio_pago}</td>
+                      <td className="px-4 py-2 font-semibold text-green-400">
+                        S/ {pago.monto_total}
+                      </td>
+                      <td className="px-4 py-2">
+                        <Button onClick={() => handlePrintReceipt(pago.cod_comprobante)}
+                          className="bg-white text-black hover:bg-gray-700 hover:text-white">
+                          <Printer className="h-4 w-4 mr-2" />
+                          Reimprimir
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <DialogFooter className="mt-4">
-              <Button onClick={() => setEditingDeuda(null)} variant="ghost">
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveDeuda} disabled={isSubmitting}>
-                {isSubmitting ? "Guardando..." : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </Card>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 
@@ -1109,115 +943,54 @@ const handleSaveDeuda = async () => {
               <CardHeader>
                 {/* Header */}
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-100 mb-2">Generar deuda masiva</h1>
-                  <p className="text-gray-300">Genera deuda de las mensualidades a los usuarios</p>
+                  <h1 className="text-3xl font-bold text-gray-100 mb-2">Historial de pagos</h1>
+                  <p className="text-gray-300">Revisa los pagos efectuados por los clientes</p>
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Progress Steps */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-center space-x-4">
+                    {[
+                      { key: "search", label: "Buscar Cliente", icon: Search },
+                      { key: "select-debts", label: "Pagos Realizados", icon: CreditCard },
 
-                <div className="flex flex-row items-end gap-4 justify-center">
-                  {/* MES */}
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-300 mb-1">Mes</label>
-                    <Select value={mes.toString()} onValueChange={(value) => setMes(Number(value))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-40">
-                        <SelectValue placeholder="Seleccionar mes" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        {meses.map((m) => (
-                          <SelectItem key={m.valor} value={m.valor.toString()}>
-                            {m.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* AÑO */}
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-300 mb-1">Año</label>
-                    <Select value={anio.toString()} onValueChange={(value) => setAnio(Number(value))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-32">
-                        <SelectValue placeholder="Seleccionar año" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        {años.map((a) => (
-                          <SelectItem key={a} value={a.toString()}>
-                            {a}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* BOTÓN */}
-                  <div>
-                    <Button
-                      onClick={generarDeuda}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Generar
-                    </Button>
+                    ].map((step, index) => {
+                      const Icon = step.icon
+                      const isActive = currentStep === step.key
+                      const isCompleted =
+                        (currentStep === "select-debts" && step.key === "search") ||
+                        (currentStep === "payment-details" && ["search", "select-debts"].includes(step.key))
+                      return (
+                        <div key={step.key} className="flex items-center">
+                          <div
+                            className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${isActive
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : isCompleted
+                                ? "border-green-600 bg-green-600 text-white"
+                                : "border-gray-400  text-gray-400"
+                              }`}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <span
+                            className={`ml-2 text-sm font-medium ${isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
+                              }`}
+                          >
+                            {step.label}
+                          </span>
+                          {index < 1 && <ArrowRight className="h-4 w-4 text-gray-300 mx-4" />}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
+
+                {/* Step Content */}
+                {currentStep === "search" && renderSearchStep()}
+                {currentStep === "select-debts" && renderPagos()}
               </CardContent>
             </Card>
-            {userRole === "ADMINISTRADOR" && (
-              <>
-                <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
-                  <CardHeader>
-                    {/* Header */}
-                    <div>
-                      <h1 className="text-3xl font-bold text-gray-100 mb-2">Gestionar deudas</h1>
-                      <p className="text-gray-300">Modifica y/o anula deudas</p>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Progress Steps */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-center space-x-4">
-                        {[
-                          { key: "search", label: "Buscar Cliente", icon: Search },
-                          { key: "select-debts", label: "Gestionar Deudas", icon: CreditCard },
-                        ].map((step, index) => {
-                          const Icon = step.icon
-                          const isActive = currentStep === step.key
-                          const isCompleted =
-                            (currentStep === "select-debts" && step.key === "search") ||
-                            (currentStep === "payment-details" && ["search", "select-debts"].includes(step.key))
-                          return (
-                            <div key={step.key} className="flex items-center">
-                              <div
-                                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${isActive
-                                  ? "border-blue-600 bg-blue-600 text-white"
-                                  : isCompleted
-                                    ? "border-green-600 bg-green-600 text-white"
-                                    : "border-gray-400  text-gray-400"
-                                  }`}
-                              >
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              <span
-                                className={`ml-2 text-sm font-medium ${isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
-                                  }`}
-                              >
-                                {step.label}
-                              </span>
-                              {index < 1 && <ArrowRight className="h-4 w-4 text-gray-300 mx-4" />}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Step Content */}
-                    {currentStep === "search" && renderSearchStep()}
-                    {currentStep === "select-debts" && renderSelectDebtsStep()}
-                  </CardContent>
-                </Card>
-              </>
-            )}
-
           </div>
         </div>
       </SidebarInset>

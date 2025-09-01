@@ -808,8 +808,6 @@ export default function ClientsPage() {
       const fechaFormateada = formatearFechaUTCString(data.fecha_emision);
 
 
-
-
       const printWindow = window.open('', '', 'width=400,height=600');
 
       if (printWindow) {
@@ -818,12 +816,16 @@ export default function ClientsPage() {
           <head>
             <title>Comprobante</title>
             <style>
+              @page {
+                size: 80mm auto; /* Ajusta al tamaño de tu papel (ej: 80mm ancho de rollo térmico) */
+                margin: 0; /* Elimina márgenes de impresión */
+              }
               body {
                 font-family: Arial, sans-serif;
-                width: 78mm;
-                margin: 0 auto;
-                padding: 2px;
-                font-size: 12px;
+                width: 80mm; /* ancho estándar boleta térmica */
+                margin: 0; /* elimina márgenes laterales */
+                padding: 5px; /* pequeño padding interno */
+                font-size: 14px; /* sube tamaño de letra */
               }
               .center {
                 text-align: center;
@@ -832,25 +834,21 @@ export default function ClientsPage() {
                 font-weight: bold;
               }
               .section {
-                margin: 10px 0;
+                margin: 8px 0;
               }
               .table {
                 width: 100%;
                 border-collapse: collapse;
-                font-size: 12px;
-                font-family: Arial, sans-serif;
+                font-size: 13px;
               }
-                
               .table th, .table td {
                 text-align: left;
-                padding: 2px 0;
+                padding: 3px 0;
               }
               .line {
                 border-top: 1px dashed #000;
-                margin: 6px 0;
+                margin: 5px 0;
               }
-                
-
             </style>
           </head>
           <body>
@@ -858,8 +856,8 @@ export default function ClientsPage() {
             <div class="center">AV. HUANUCO - OYON</div>
             <div class="center">RUC: 20537026945</div>
             <div class="center">Telf: 935671661</div>
-            <div class="center" style="margin-top: 10px;">
-              <img src="/logo_impresion.webp" alt="Logo" width="120" />
+            <div class="center" style="margin-top: 8px;">
+              <img src="/logo_impresion.webp" alt="Logo" width="100" />
             </div>
             <div class="line"></div>
             <div class="center bold">${tipo_comprobante.toUpperCase()} ELECTRÓNICA</div>
@@ -890,16 +888,15 @@ export default function ClientsPage() {
                 `).join('')}
               </tbody>
             </table>
-
             <div class="line"></div>
             <div style="text-align: right; font-weight: bold; margin-top: 5px;">
               Total: S/. ${Number(monto_total).toFixed(2)}
             </div>
             <div><strong>Son:</strong> ${montoALetras(Number(monto_total))}</div>
-
             <div class="center"><strong>Cajero:</strong> ${cajero}</div>
           </body>
         </html>
+
       `);
 
         printWindow.document.close();

@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
                         ano_mes,
                         descripcion,
                         monto,
+                        saldo_pendiente: monto,
                         estado: "ACTIVO",
                         id_servicio: parseInt(tipoServicio),
                         num_con: num_contrato,

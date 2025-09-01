@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Building2, LogOut, User, Menu, Home, Users, CreditCard, AlertTriangle } from "lucide-react"
+import { Building2, LogOut, User, Menu, Home, ClipboardList , CreditCard, AlertTriangle, ScrollText } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -15,8 +15,9 @@ export function Navbar() {
     const navigation = [
         { name: "Inicio", href: "/cobranza", icon: Home },
         { name: "Pagos", href: "/cobranza/pagos", icon: CreditCard },
-        { name: "Historial de Pagos", href: "/customers", icon: Users },
+        { name: "Historial de Pagos", href: "/cobranza/historialPagos", icon: ClipboardList },
         { name: "Deudas", href: "/cobranza/deudas", icon: AlertTriangle },
+        { name: "Reportes", href: "/cobranza/reportes", icon: ScrollText },
     ]
 
     return (

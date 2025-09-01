@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import Link from "next/link"
 import { Navbar } from "@/components/navarcobranza"
+import DetalleModal from "@/components/cobranza/detallereporte" // <- Nuevo componente
+import { format } from "date-fns"
+
 
 
 import {
@@ -22,11 +25,11 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertTriangle, Search, Users, TrendingUp, CreditCard, CopyX, UserIcon, MapPinIcon, BriefcaseIcon, PlusCircle, IdCard } from "lucide-react"
+import { AlertTriangle, Search, Users, TrendingUp, CreditCard, CopyX, Eye, MapPinIcon, BriefcaseIcon, PlusCircle, IdCard } from "lucide-react"
 import { toast } from 'react-toastify';
 
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,Cell } from "recharts";
 
 
 
@@ -57,19 +60,14 @@ type deuda = {
 }
 
 export default function ClientsPage() {
-  //const [clients, setClients] = useState<Client[]>([])
 
-  //  const [tipo_comrprobante, setTipoComprobante] = useState<tipo_comprobante[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  //const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [openModal, setOpenModal] = useState(false);
   const [pagos, setPagos] = useState<pagos[]>([]);
   const [deudas, setDeudas] = useState<deuda[]>([])
 
 
-  //  const [detallePago, setDetallePago] = useState<detallePago[]>([]);
-
+  const [detalleAbierto, setDetalleAbierto] = useState(false)
+  const [detalleReporte, setDetalleReporte] = useState<any[]>([])
 
   const [userRole, setUserRole] = useState("");
 
@@ -113,7 +111,23 @@ export default function ClientsPage() {
   }, []);
 
 
+  const abrirDetalle = async () => {
+    try {
+      const hoy = format(new Date(), "yyyy-MM-dd")
 
+      const res = await fetch("/api/caja/reportexfechadet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ desde: hoy, hasta: hoy }),
+      })
+
+      const data = await res.json()
+      setDetalleReporte(data)
+      setDetalleAbierto(true)
+    } catch (err) {
+      console.error("Error al obtener detalle:", err)
+    }
+  }
 
   const todayLocal = new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 
@@ -148,8 +162,6 @@ export default function ClientsPage() {
     medio,
     total
   }));
-
-
 
 
 
@@ -222,7 +234,12 @@ export default function ClientsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-green-500">S/ {ingresosHoy}</div>
-                      <p className="text-xs text-gray-400">{pagosHoy.length} pagos procesados</p>
+                      <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <p className="text-xs text-gray-400">{pagosHoy.length} pagos procesados</p>
+                        <Button onClick={abrirDetalle} className="bg-gray-500/10 hover:bg-gray-700">
+                          <Eye />Ver
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -251,12 +268,22 @@ export default function ClientsPage() {
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={250}>
-                        <BarChart data={data}>
-                          <XAxis dataKey="medio" stroke="#ccc" />
-                          <YAxis stroke="#ccc" />
-                          <Tooltip />
-                          <Bar dataKey="total" fill="#22c55e" radius={[5, 5, 0, 0]} />
-                        </BarChart>
+<BarChart data={data}>
+  <XAxis dataKey="medio" stroke="#ccc" />
+  <YAxis stroke="#ccc" />
+  <Tooltip />
+  <Bar dataKey="total" radius={[5, 5, 0, 0]}>
+    {data.map((entry, index) => {
+      let fillColor = "#22c55e"; // verde por defecto (efectivo)
+
+      if (entry.medio === "yape") fillColor = "#a855f7";         // morado
+      else if (entry.medio === "transferencia") fillColor = "#3b82f6"; // azul
+
+      return <Cell key={`cell-${index}`} fill={fillColor} />;
+    })}
+  </Bar>
+</BarChart>
+
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
@@ -267,6 +294,13 @@ export default function ClientsPage() {
             </Card>
           </div>
         </div>
+
+        {/* Modal separado */}
+        <DetalleModal
+          abierto={detalleAbierto}
+          onClose={() => setDetalleAbierto(false)}
+          datos={detalleReporte}
+        />
       </SidebarInset>
     </SidebarProvider>
   )
