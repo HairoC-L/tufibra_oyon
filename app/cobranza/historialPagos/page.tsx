@@ -672,7 +672,6 @@ export default function ClientsPage() {
           <body>
             <div class="center bold">TU FIBRA DIGITAL S.A.C.</div>
             <div class="center">AV. HUANUCO - OYON</div>
-            <div class="center">RUC: 20537026945</div>
             <div class="center">Telf: 935671661</div>
             <div class="center" style="margin-top: 8px;">
               <img src="/logo_impresion.webp" alt="Logo" width="100" />
