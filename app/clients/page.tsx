@@ -133,21 +133,6 @@ export default function ClientsPage() {
   const cajasFiltradas = cajas.filter(caja => caja.id_nodo === Number(selectedNodo));
 
 
-  /*const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Activo":
-        return "bg-green-500"
-      case "Suspendido":
-        return "bg-red-500"
-      case "Inactivo":
-        return "bg-gray-500"
-      case "Pendiente":
-        return "bg-yellow-500"
-      default:
-        return "bg-gray-500"
-    }
-  }*/
-
   //Carga de servicios
   useEffect(() => {
     const fetchServicios = async () => {
@@ -228,6 +213,7 @@ export default function ClientsPage() {
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.cli_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.cli_apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.cli_dni.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.cli_razonsoci.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.cli_ruc.toLowerCase().includes(searchTerm.toLowerCase())

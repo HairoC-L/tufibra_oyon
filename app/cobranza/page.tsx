@@ -29,7 +29,7 @@ import { AlertTriangle, Search, Users, TrendingUp, CreditCard, CopyX, Eye, MapPi
 import { toast } from 'react-toastify';
 
 
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 
 
@@ -160,7 +160,7 @@ export default function ClientsPage() {
 
   const data = Object.entries(ingresosPorMedio).map(([medio, total]) => ({
     medio,
-    total
+    total: Math.round(total * 10) / 10,
   }));
 
 
@@ -268,21 +268,21 @@ export default function ClientsPage() {
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={250}>
-<BarChart data={data}>
-  <XAxis dataKey="medio" stroke="#ccc" />
-  <YAxis stroke="#ccc" />
-  <Tooltip />
-  <Bar dataKey="total" radius={[5, 5, 0, 0]}>
-    {data.map((entry, index) => {
-      let fillColor = "#22c55e"; // verde por defecto (efectivo)
+                        <BarChart data={data}>
+                          <XAxis dataKey="medio" stroke="#ccc" />
+                          <YAxis stroke="#ccc" />
+                          <Tooltip />
+                          <Bar dataKey="total" radius={[5, 5, 0, 0]}>
+                            {data.map((entry, index) => {
+                              let fillColor = "#22c55e"; // verde por defecto (efectivo)
 
-      if (entry.medio === "yape") fillColor = "#a855f7";         // morado
-      else if (entry.medio === "transferencia") fillColor = "#3b82f6"; // azul
+                              if (entry.medio === "yape") fillColor = "#a855f7";         // morado
+                              else if (entry.medio === "transferencia") fillColor = "#3b82f6"; // azul
 
-      return <Cell key={`cell-${index}`} fill={fillColor} />;
-    })}
-  </Bar>
-</BarChart>
+                              return <Cell key={`cell-${index}`} fill={fillColor} />;
+                            })}
+                          </Bar>
+                        </BarChart>
 
                       </ResponsiveContainer>
                     </CardContent>
