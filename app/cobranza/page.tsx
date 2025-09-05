@@ -138,16 +138,14 @@ export default function ClientsPage() {
 
   const deudasAnuladas = deudas.filter((d) => d.estado === "ANULADO");
 
-  const totalPorCobrar = Math.round(
-    deudasActivas.reduce((sum, d) => sum + Number(d.saldo_pendiente), 0) * 100
-  ) / 100;
+  const totalPorCobrar = Math.round(deudasActivas.reduce((sum, d) => sum + Number(d.saldo_pendiente), 0) * 100) / 100;
   // PAGOS DE HOY (para ambos roles)
   const pagosHoy = pagos.filter((p) => {
     const fechaPago = new Date(p.fecha_emision).toLocaleDateString("en-CA");
     return p.estado !== "ANULADO" && fechaPago === todayLocal;
   });
 
-  const ingresosHoy = pagosHoy.reduce((sum, p) => sum + Number(p.monto_total), 0);
+  const ingresosHoy = Math.round(pagosHoy.reduce((sum, p) => sum + Number(p.monto_total), 0)*100)/100;
 
   const ingresosPorMedio = pagosHoy.reduce(
     (acc, p) => {

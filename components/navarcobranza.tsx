@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Building2, LogOut, User, Menu, Home, ClipboardList , CreditCard, AlertTriangle, ScrollText } from "lucide-react"
+import { Building2, LogOut, User, Menu, Home, ClipboardList, CreditCard, AlertTriangle, ScrollText } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -55,7 +55,7 @@ export function Navbar() {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm">
-                                        <Menu className="h-4 w-4" />
+                                        <Menu className="h-4 w-4 text-white" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">

@@ -460,7 +460,6 @@ export default function OrdersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-gray-700">
-                        <TableHead className="text-gray-200">ID</TableHead>
                         <TableHead className="text-gray-200">Cliente</TableHead>
                         <TableHead className="text-gray-200">Tipo</TableHead>
                         <TableHead className="text-gray-200">Estado</TableHead>
@@ -473,7 +472,6 @@ export default function OrdersPage() {
                     <TableBody>
                       {filteredOrders.map((order) => (
                         <TableRow key={order.id} className="border-gray-700">
-                          <TableCell className="text-white font-medium">{order.id}</TableCell>
                           <TableCell className="text-gray-200">{order.client}</TableCell>
                           <TableCell className="text-gray-200">{order.type}</TableCell>
                           <TableCell>

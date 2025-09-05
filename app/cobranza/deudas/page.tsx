@@ -223,6 +223,8 @@ export default function ClientsPage() {
   const [mes, setMes] = useState(1);
   const [anio, setAnio] = useState(currentYear);
 
+  const [loadingActivo, setLoadingActivo] = useState(false);
+  const [loadingCortado, setLoadingCortado] = useState(false);
 
   const [showDetalleComprobante, setShowDetalleComprobante] = useState(false);
   const [newPago, setNewPago] = useState({
@@ -367,7 +369,7 @@ export default function ClientsPage() {
   const [error, setError] = useState("")
 
 
-    const [editingDeuda, setEditingDeuda] = useState(null)
+  const [editingDeuda, setEditingDeuda] = useState(null)
   const [editedData, setEditedData] = useState({ monto: "", saldo_pendiente: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -423,7 +425,7 @@ export default function ClientsPage() {
 
 
 
-    const handleEditClick = (deuda:any) => {
+  const handleEditClick = (deuda: any) => {
     setEditingDeuda(deuda)
     setEditedData({
       monto: deuda.deu.monto,
@@ -432,56 +434,56 @@ export default function ClientsPage() {
   }
 
 
-  const handleAnularClick = async (deudaId:any) => {
-  try {
-    const res = await fetch("/api/caja/modificarDeuda", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id_deuda: deudaId,
-        estado: "ANULADO"
+  const handleAnularClick = async (deudaId: any) => {
+    try {
+      const res = await fetch("/api/caja/modificarDeuda", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id_deuda: deudaId,
+          estado: "ANULADO"
+        })
       })
-    })
 
-    if (!res.ok) throw new Error("Error al anular la deuda")
-    
-    alert("Deuda anulada correctamente")
-    // Aquí podrías actualizar el estado o recargar datos
-  } catch (error) {
-    console.error(error)
-    alert("Error al anular la deuda")
+      if (!res.ok) throw new Error("Error al anular la deuda")
+
+      alert("Deuda anulada correctamente")
+      // Aquí podrías actualizar el estado o recargar datos
+    } catch (error) {
+      console.error(error)
+      alert("Error al anular la deuda")
+    }
   }
-}
 
-const handleSaveDeuda = async () => {
-  setIsSubmitting(true)
-  /*try {
-    const res = await fetch("/api/caja/modificarDeuda", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        id_deuda: editingDeuda!.id_deuda,
-        monto: parseFloat(editedData.monto),
-        saldo_pendiente: parseFloat(editedData.saldo_pendiente)
+  const handleSaveDeuda = async () => {
+    setIsSubmitting(true)
+    /*try {
+      const res = await fetch("/api/caja/modificarDeuda", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id_deuda: editingDeuda!.id_deuda,
+          monto: parseFloat(editedData.monto),
+          saldo_pendiente: parseFloat(editedData.saldo_pendiente)
+        })
       })
-    })
-
-    if (!res.ok) throw new Error("Error al modificar la deuda")
-
-    alert("Deuda modificada correctamente")
-    setEditingDeuda(null)
-    // Aquí podrías actualizar el estado o recargar datos
-  } catch (error) {
-    console.error(error)
-    alert("Error al modificar la deuda")
-  } finally {
-    setIsSubmitting(false)
-  }*/
-}
+  
+      if (!res.ok) throw new Error("Error al modificar la deuda")
+  
+      alert("Deuda modificada correctamente")
+      setEditingDeuda(null)
+      // Aquí podrías actualizar el estado o recargar datos
+    } catch (error) {
+      console.error(error)
+      alert("Error al modificar la deuda")
+    } finally {
+      setIsSubmitting(false)
+    }*/
+  }
 
 
 
@@ -693,170 +695,35 @@ const handleSaveDeuda = async () => {
   };
 
 
-  function montoALetras(monto: number): string {
-    const formatter = new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 2,
-    });
-
-    const [entero, decimal] = formatter.format(monto).replace("S/", "").trim().split(",");
-    const num = parseInt(entero.replace(/\./g, ''));
-    const dec = parseInt(decimal || "00");
-
-    // Puedes usar una librería si prefieres, esto es un placeholder:
-    return `*** ${entero} CON ${dec < 10 ? '0' + dec : dec}/100 SOLES ***`;
-  }
 
 
-  function formatearFechaUTCString(fechaUTC: string): string {
-    const [fecha, hora] = fechaUTC.split("T");
-    const [year, month, day] = fecha.split("-");
-    const horaLimpiada = hora.slice(0, 8); // elimina los milisegundos y la Z
+  const handleDownload = async (estado: "activo" | "cortado") => {
+    const setLoading = estado === "activo" ? setLoadingActivo : setLoadingCortado;
+    setLoading(true);
 
-    return `${day}/${month}/${year} ${horaLimpiada}`;
-  }
-
-
-  const handlePrintReceipt = async () => {
     try {
+      const res = await fetch(`/api/caja/exportarDeudas?estado=${estado}`);
 
-      const res = await fetch(`/api/caja/impresion?cod_comprobante=${pagoProcesado?.cod_comprobante}`);
-      const data = await res.json();
-
-      if (!data || data.message) {
-        alert("Error al obtener los datos del comprobante");
-        return;
+      if (!res.ok) {
+        throw new Error("Error al generar el archivo");
       }
 
-      const {
-        cod_comprobante,
-        fecha_emision,
-        monto_total,
-        cliente,
-        detalles_pago,
-        medio_pago,
-        cajero,
-        tipo_comprobante,
-      } = data;
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
 
-      const isNatural = cliente.cli_tipo === "NATURAL";
-      const nombreCliente = isNatural
-        ? `${cliente.cli_nombre || ""} ${cliente.cli_apellido || ""}`.trim()
-        : cliente.cli_razonsoci;
-      const documento = isNatural ? cliente.cli_dni : cliente.cli_ruc;
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `deudas_${estado}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
 
-      const fechaFormateada = formatearFechaUTCString(data.fecha_emision);
-
-
-
-
-      const printWindow = window.open('', '', 'width=400,height=600');
-
-      if (printWindow) {
-        printWindow.document.write(`
-        <html>
-          <head>
-            <title>Comprobante</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                width: 80mm;
-                margin: 0 auto;
-                padding: 0px;
-                font-size: 12px;
-              }
-              .center {
-                text-align: center;
-              }
-              .bold {
-                font-weight: bold;
-              }
-              .section {
-                margin: 10px 0;
-              }
-              .table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 18px;
-                font-family: Arial, sans-serif;
-              }
-                
-              .table th, .table td {
-                text-align: left;
-                padding: 2px 0;
-              }
-              .line {
-                border-top: 1px dashed #000;
-                margin: 6px 0;
-              }
-                
-
-            </style>
-          </head>
-          <body>
-            <div class="center bold">TU FIBRA DIGITAL S.A.C.</div>
-            <div class="center">AV. HUANUCO - OYON</div>
-            <div class="center">RUC: 20537026945</div>
-            <div class="center">Telf: 935671661</div>
-            <div class="center" style="margin-top: 10px;">
-              <img src="/logo_impresion.webp" alt="Logo" width="120" />
-            </div>
-            <div class="line"></div>
-            <div class="center bold">${tipo_comprobante.toUpperCase()} ELECTRÓNICA</div>
-            <div class="center bold">${cod_comprobante}</div>
-            <div class="center">${fechaFormateada}</div>
-            <div class="line"></div>
-            <div><strong>Cód. Abonado:</strong> ${cliente.cli_id}</div>
-            <div><strong>${isNatural ? 'DNI' : 'RUC'}:</strong> ${documento}</div>
-            <div><strong>Cliente:</strong> ${nombreCliente}</div>
-            <div><strong>Dirección:</strong> ${cliente.cli_direccion}</div>
-            <div><strong>Medio de Pago:</strong> ${(data.medio_pago).toUpperCase()}</div>
-            <div class="line"></div>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th style="text-align: left;">Cant.</th>
-                  <th style="text-align: left;">Descripción</th>
-                  <th style="text-align: right;">Importe</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${detalles_pago.map((item: { descripcion: string; monto: number }) => `
-                  <tr>
-                    <td>01</td>
-                    <td>${item.descripcion}</td>
-                    <td style="text-align: right;">S/. ${Number(item.monto).toFixed(2)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-
-            <div class="line"></div>
-            <div style="text-align: right; font-weight: bold; margin-top: 5px;">
-              Total: S/. ${Number(monto_total).toFixed(2)}
-            </div>
-            <div><strong>Son:</strong> ${montoALetras(Number(monto_total))}</div>
-
-            <div class="center"><strong>Cajero:</strong> ${cajero}</div>
-          </body>
-        </html>
-      `);
-
-        printWindow.document.close();
-        printWindow.focus();
-
-        setTimeout(() => {
-          printWindow.print();
-          printWindow.close();
-        }, 500);
-      } else {
-        alert("No se pudo abrir la ventana de impresión.");
-      }
-
+      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error al imprimir:", error);
-      alert("Error al imprimir el comprobante.");
+      console.error("Error al descargar:", error);
+      alert("Ocurrió un error al generar el archivo.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -990,104 +857,107 @@ const handleSaveDeuda = async () => {
       </Card>
       {/* Debts Selection */}
       <Card className="rounded-md border border-gray-700 bg-gray-800/30">
-      <CardContent className="p-6">
-        <h3 className="text-lg font-medium text-white mb-4">Lista de Deudas</h3>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium text-white mb-4">Lista de Deudas</h3>
 
-        {selectedDeudas.length === 0 ? (
-          <p className="text-center text-gray-300">No hay deudas registradas.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-white">
-              <thead>
-                <tr className="text-left border-b border-gray-600">
-                  <th className="p-2">Descripción</th>
-                  <th className="p-2">Monto Total</th>
-                  <th className="p-2">Saldo Pendiente</th>
-                  <th className="p-2">Estado</th>
-                  <th className="p-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedDeudas.map((deuda) => (
-                  <tr key={deuda.deu.id_deuda} className="border-b border-gray-700">
-                    <td className="p-2">{deuda.deu.descripcion}</td>
-                    <td className="p-2">S/ {Number(deuda.deu.monto).toFixed(2)}</td>
-                    <td className="p-2 text-red-500">S/ {Number(deuda.deu.saldo_pendiente).toFixed(2)}</td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          deuda.deu.estado === "ACTIVO"
-                            ? "destructive"
-                            : deuda.deu.estado === "RESTANTE"
-                              ? "warning"
-                              : "outline"
-                        }
-                        className="text-xs"
-                      >
-                        {deuda.deu.estado === "RESTANTE" ? "PENDIENTE" : deuda.deu.estado}
-                      </Badge>
-                    </td>
-                    <td className="p-2 space-x-2">
-                      <Button className="bg-gray-500 hover:bg-gray-700" size="sm" onClick={() => handleEditClick(deuda)}>
-                        <Pencil className="h-4 w-4 mr-1" />
-                        Modificar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleAnularClick(deuda.deu.id_deuda)}
-                      >
-                        <XCircle className="h-4 w-4 mr-1" />
-                        Anular
-                      </Button>
-                    </td>
+          {selectedDeudas.length === 0 ? (
+            <p className="text-center text-gray-300">No hay deudas registradas.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-white">
+                <thead>
+                  <tr className="text-left border-b border-gray-600">
+                    <th className="p-2">Descripción</th>
+                    <th className="p-2">Monto Total</th>
+                    <th className="p-2">Saldo Pendiente</th>
+                    <th className="p-2">Estado</th>
+                    <th className="p-2">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-
-      {/* Modal de Edición */}
-      {editingDeuda && (
-        <Dialog open={true} onOpenChange={() => setEditingDeuda(null)}>
-          <DialogContent className="bg-gray-800 border border-gray-600 text-white">
-            <DialogTitle>Modificar Deuda</DialogTitle>
-            <div className="space-y-4 mt-2">
-              <div>
-                <Label>Monto Total</Label>
-                <Input
-                  type="number"
-                  value={editedData.monto}
-                  onChange={(e) => setEditedData({ ...editedData, monto: e.target.value })}
-                  className="bg-gray-700 text-white border-gray-500"
-                />
-              </div>
-              <div>
-                <Label>Saldo Pendiente</Label>
-                <Input
-                  type="number"
-                  value={editedData.saldo_pendiente}
-                  onChange={(e) => setEditedData({ ...editedData, saldo_pendiente: e.target.value })}
-                  className="bg-gray-700 text-white border-gray-500"
-                />
-              </div>
+                </thead>
+                <tbody>
+                  {selectedDeudas.map((deuda) => (
+                    <tr key={deuda.deu.id_deuda} className="border-b border-gray-700">
+                      <td className="p-2">{deuda.deu.descripcion}</td>
+                      <td className="p-2">S/ {Number(deuda.deu.monto).toFixed(2)}</td>
+                      <td className="p-2 text-red-500">S/ {Number(deuda.deu.saldo_pendiente).toFixed(2)}</td>
+                      <td className="p-2">
+                        <Badge
+                          variant={
+                            deuda.deu.estado === "ACTIVO"
+                              ? "destructive"
+                              : deuda.deu.estado === "RESTANTE"
+                                ? "warning"
+                                : "outline"
+                          }
+                          className="text-xs"
+                        >
+                          {deuda.deu.estado === "RESTANTE" ? "PENDIENTE" : deuda.deu.estado}
+                        </Badge>
+                      </td>
+                      <td className="p-2 space-x-2">
+                        <Button className="bg-gray-500 hover:bg-gray-700" size="sm" onClick={() => handleEditClick(deuda)}>
+                          <Pencil className="h-4 w-4 mr-1" />
+                          Modificar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleAnularClick(deuda.deu.id_deuda)}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Anular
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <DialogFooter className="mt-4">
-              <Button onClick={() => setEditingDeuda(null)} variant="ghost">
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveDeuda} disabled={isSubmitting}>
-                {isSubmitting ? "Guardando..." : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-    </Card>
+          )}
+        </CardContent>
+
+        {/* Modal de Edición */}
+        {editingDeuda && (
+          <Dialog open={true} onOpenChange={() => setEditingDeuda(null)}>
+            <DialogContent className="bg-gray-800 border border-gray-600 text-white">
+              <DialogTitle>Modificar Deuda</DialogTitle>
+              <div className="space-y-4 mt-2">
+                <div>
+                  <Label>Monto Total</Label>
+                  <Input
+                    type="number"
+                    value={editedData.monto}
+                    onChange={(e) => setEditedData({ ...editedData, monto: e.target.value })}
+                    className="bg-gray-700 text-white border-gray-500"
+                  />
+                </div>
+                <div>
+                  <Label>Saldo Pendiente</Label>
+                  <Input
+                    type="number"
+                    value={editedData.saldo_pendiente}
+                    onChange={(e) => setEditedData({ ...editedData, saldo_pendiente: e.target.value })}
+                    className="bg-gray-700 text-white border-gray-500"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="mt-4">
+                <Button onClick={() => setEditingDeuda(null)} variant="ghost">
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveDeuda} disabled={isSubmitting}>
+                  {isSubmitting ? "Guardando..." : "Guardar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </Card>
     </div>
   )
+
+
+
 
 
   return (
@@ -1105,122 +975,158 @@ const handleSaveDeuda = async () => {
           </header>
 
           <div className="p-6">
-            <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
-              <CardHeader>
-                {/* Header */}
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-100 mb-2">Generar deuda masiva</h1>
-                  <p className="text-gray-300">Genera deuda de las mensualidades a los usuarios</p>
-                </div>
-              </CardHeader>
-              <CardContent>
-
-                <div className="flex flex-row items-end gap-4 justify-center">
-                  {/* MES */}
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-300 mb-1">Mes</label>
-                    <Select value={mes.toString()} onValueChange={(value) => setMes(Number(value))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-40">
-                        <SelectValue placeholder="Seleccionar mes" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        {meses.map((m) => (
-                          <SelectItem key={m.valor} value={m.valor.toString()}>
-                            {m.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* AÑO */}
-                  <div className="flex flex-col">
-                    <label className="text-sm text-gray-300 mb-1">Año</label>
-                    <Select value={anio.toString()} onValueChange={(value) => setAnio(Number(value))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-32">
-                        <SelectValue placeholder="Seleccionar año" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                        {años.map((a) => (
-                          <SelectItem key={a} value={a.toString()}>
-                            {a}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* BOTÓN */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                <CardHeader>
+                  {/* Header */}
                   <div>
-                    <Button
-                      onClick={generarDeuda}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Generar
-                    </Button>
+                    <h1 className="text-3xl font-bold text-gray-100 mb-2">Generar deuda masiva</h1>
+                    <p className="text-gray-300">Genera deuda de las mensualidades a los usuarios</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            {userRole === "ADMINISTRADOR" && (
-              <>
-                <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
-                  <CardHeader>
-                    {/* Header */}
-                    <div>
-                      <h1 className="text-3xl font-bold text-gray-100 mb-2">Gestionar deudas</h1>
-                      <p className="text-gray-300">Modifica y/o anula deudas</p>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Progress Steps */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-center space-x-4">
-                        {[
-                          { key: "search", label: "Buscar Cliente", icon: Search },
-                          { key: "select-debts", label: "Gestionar Deudas", icon: CreditCard },
-                        ].map((step, index) => {
-                          const Icon = step.icon
-                          const isActive = currentStep === step.key
-                          const isCompleted =
-                            (currentStep === "select-debts" && step.key === "search") ||
-                            (currentStep === "payment-details" && ["search", "select-debts"].includes(step.key))
-                          return (
-                            <div key={step.key} className="flex items-center">
-                              <div
-                                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${isActive
-                                  ? "border-blue-600 bg-blue-600 text-white"
-                                  : isCompleted
-                                    ? "border-green-600 bg-green-600 text-white"
-                                    : "border-gray-400  text-gray-400"
-                                  }`}
-                              >
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              <span
-                                className={`ml-2 text-sm font-medium ${isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
-                                  }`}
-                              >
-                                {step.label}
-                              </span>
-                              {index < 1 && <ArrowRight className="h-4 w-4 text-gray-300 mx-4" />}
-                            </div>
-                          )
-                        })}
-                      </div>
+                </CardHeader>
+                <CardContent>
+
+                  <div className="flex flex-row items-end gap-4 justify-center">
+                    {/* MES */}
+                    <div className="flex flex-col">
+                      <label className="text-sm text-gray-300 mb-1">Mes</label>
+                      <Select value={mes.toString()} onValueChange={(value) => setMes(Number(value))}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-40">
+                          <SelectValue placeholder="Seleccionar mes" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          {meses.map((m) => (
+                            <SelectItem key={m.valor} value={m.valor.toString()}>
+                              {m.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    {/* Step Content */}
-                    {currentStep === "search" && renderSearchStep()}
-                    {currentStep === "select-debts" && renderSelectDebtsStep()}
-                  </CardContent>
-                </Card>
-              </>
-            )}
+                    {/* AÑO */}
+                    <div className="flex flex-col">
+                      <label className="text-sm text-gray-300 mb-1">Año</label>
+                      <Select value={anio.toString()} onValueChange={(value) => setAnio(Number(value))}>
+                        <SelectTrigger className="bg-gray-700 border-gray-600 text-white w-32">
+                          <SelectValue placeholder="Seleccionar año" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                          {años.map((a) => (
+                            <SelectItem key={a} value={a.toString()}>
+                              {a}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* BOTÓN */}
+                    <div>
+                      <Button
+                        onClick={generarDeuda}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Generar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                <CardHeader>
+                  {/* Header */}
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-100 mb-2">Exportar</h1>
+                    <p className="text-gray-300">Usuarios con deuda</p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-row items-end gap-4 justify-center">
+      <Button
+        onClick={() => handleDownload("activo")}
+        disabled={loadingActivo}
+        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+      >
+        <Download className="w-4 h-4" />
+        {loadingActivo ? "Generando..." : "Activos con deuda"}
+      </Button>
+
+      <Button
+        onClick={() => handleDownload("cortado")}
+        disabled={loadingCortado}
+        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+      >
+        <Download className="w-4 h-4" />
+        {loadingCortado ? "Generando..." : "Cortados con deuda"}
+      </Button>
+    </div>
+                </CardContent>
+              </Card>
+
+            </div>
+            <div className="mt-4">
+              {userRole === "ADMINISTRADOR" && (
+                <>
+                  <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-xl">
+                    <CardHeader>
+                      {/* Header */}
+                      <div>
+                        <h1 className="text-3xl font-bold text-gray-100 mb-2">Gestionar deudas</h1>
+                        <p className="text-gray-300">Modifica y/o anula deudas</p>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Progress Steps */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-center space-x-4">
+                          {[
+                            { key: "search", label: "Buscar Cliente", icon: Search },
+                            { key: "select-debts", label: "Gestionar Deudas", icon: CreditCard },
+                          ].map((step, index) => {
+                            const Icon = step.icon
+                            const isActive = currentStep === step.key
+                            const isCompleted =
+                              (currentStep === "select-debts" && step.key === "search") ||
+                              (currentStep === "payment-details" && ["search", "select-debts"].includes(step.key))
+                            return (
+                              <div key={step.key} className="flex items-center">
+                                <div
+                                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${isActive
+                                    ? "border-blue-600 bg-blue-600 text-white"
+                                    : isCompleted
+                                      ? "border-green-600 bg-green-600 text-white"
+                                      : "border-gray-400  text-gray-400"
+                                    }`}
+                                >
+                                  <Icon className="h-5 w-5" />
+                                </div>
+                                <span
+                                  className={`ml-2 text-sm font-medium ${isActive ? "text-blue-600" : isCompleted ? "text-green-600" : "text-gray-400"
+                                    }`}
+                                >
+                                  {step.label}
+                                </span>
+                                {index < 1 && <ArrowRight className="h-4 w-4 text-gray-300 mx-4" />}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Step Content */}
+                      {currentStep === "search" && renderSearchStep()}
+                      {currentStep === "select-debts" && renderSelectDebtsStep()}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
+
 
           </div>
         </div>
       </SidebarInset>
-    </SidebarProvider>
+    </SidebarProvider >
   )
 }

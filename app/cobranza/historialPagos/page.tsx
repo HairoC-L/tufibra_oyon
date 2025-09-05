@@ -144,27 +144,6 @@ interface pagos {
   duedas_ids: string[]
 }
 
-interface Receipt {
-  id: string
-  paymentId: string
-  type: "boleta" | "factura" | "recibo"
-  number: string
-  customer: Customer
-  items: ReceiptItem[]
-  subtotal: number
-  tax: number
-  total: number
-  paymentMethod: string
-  issuedAt: Date
-  cashier: string
-}
-
-interface ReceiptItem {
-  description: string
-  amount: number
-  month: string
-  service: string
-}
 
 type PaymentStep = "search" | "select-debts" | "payment-details" | "confirmation"
 
@@ -177,11 +156,6 @@ interface SelectedDebt {
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
-  const [tipo_comrprobante, setTipoComprobante] = useState<tipo_comprobante[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [openModal, setOpenModal] = useState(false);
-
   const [deudas, setDeudas] = useState<deuda[]>([])
 
   const [pagos, setPagos] = useState<pagos[]>([])
@@ -191,18 +165,8 @@ export default function ClientsPage() {
   const [serie, setSerie] = useState("");
   const [numero, setNumero] = useState("");
   const [selectedTipo, setSelectedTipo] = useState("");
-  const [id_user, setIdUser] = useState("");
 
-  const [showDetalleComprobante, setShowDetalleComprobante] = useState(false);
-  const [newPago, setNewPago] = useState({
-    id_tipo_compro: "",
-    serie: "",
-    correlativo: 0,
-    monto_total: 0,
-    medio_pago: "EFECTIVO",
-    num_con: "",
-    id_user: id_user,
-  })
+
 
 
   function searchClientes(query: string): Client[] {
@@ -233,20 +197,7 @@ export default function ClientsPage() {
       console.error("Error parsing JSON:", err);
     }
   };
-  //Carga de deudas
-  const fetchDeudas = async () => {
-    try {
-      const res = await fetch("/api/caja/deudasTodo");
-      if (!res.ok) {
-        console.error("Error al obtener información de las deudas:", res.status);
-        return;
-      }
-      const data = await res.json();
-      setDeudas(data);
-    } catch (err) {
-      console.error("Error parsing JSON:", err);
-    }
-  };
+
 
   //Carga de pagos
   const fetchPagos = async () => {
@@ -265,56 +216,16 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchClients();
-    fetchDeudas();
     fetchPagos();
   }, []);
-
-
-  //Carga de tipos de comprobante
-  useEffect(() => {
-    const fetchTipoComprobante = async () => {
-      try {
-        const res = await fetch("/api/tipoComprobante")
-        const data = await res.json()
-        setTipoComprobante(data)
-      } catch (err) {
-        console.error("Error al cargar tipos de comprobante:", err)
-      }
-    }
-    fetchTipoComprobante()
-  }, [])
-
-
-
-
-
-  useEffect(() => {
-    const storedId = localStorage.getItem("userId") || "";
-    setIdUser(storedId);
-  }, []);
-
-  useEffect(() => {
-    if (id_user) {
-      setNewPago((prev) => ({
-        ...prev,
-        id_user: id_user,
-      }));
-    }
-  }, [id_user]);
-
+  
   const searchParams = useSearchParams()
   const preselectedCustomerId = searchParams.get("customer")
   const receiptRef = useRef<HTMLDivElement>(null)
 
   const [currentStep, setCurrentStep] = useState<PaymentStep>("search")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  const [selectedDebts, setSelectedDebts] = useState<SelectedDebt[]>([])
-  const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "yape" | "transferencia">("efectivo")
-  const [receiptType, setReceiptType] = useState<"boleta" | "factura" | "recibo">("boleta")
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [processedPayment, setProcessedPayment] = useState<Payment | null>(null)
-  const [pagoProcesado, setpagoProcesado] = useState<pagos | null>(null)
+
 
   const [error, setError] = useState("")
 
@@ -339,227 +250,12 @@ export default function ClientsPage() {
       .sort((a, b) => new Date(a.fecha_emision).getTime() - new Date(b.fecha_emision).getTime())
   }
 
-  const handleCustomerSelect = (customer: Customer) => {
-    setSelectedCustomer(customer)
-    setCurrentStep("select-debts")
-    setError("")
-  }
-
   const handleClienteSelect = (cliente: Client) => {
     setSelectedClient(cliente)
     setCurrentStep("select-debts")
     setError("")
   }
 
-  /*
-    //deudas nuevo
-    const handleDeudaSelection = (index: number, selected: boolean) => {
-      const updated = [...selectedPagos]
-      updated[index].selected = selected
-      if (selected) {
-        updated[index].amountToPay = updated[index].deu.saldo_pendiente;
-      } else {
-        updated[index].amountToPay = 0;
-      }
-      setSelectedPagos(updated)
-    }
-  
-    const handleMontoChange = (index: number, amount: number) => {
-      const updated = [...selectedPagos]
-      const maxAmount = updated[index].deu.saldo_pendiente
-      updated[index].amountToPay = Math.min(Math.max(0, amount), maxAmount)
-      setSelectedPagos(updated)
-    }
-  
-    const getselectedPagosTotal = () => {
-      return selectedPagos
-        .filter((item) => item.selected)
-        .reduce((sum, item) => sum + Number(item.amountToPay || 0), 0);
-    };
-  
-  
-    const getselectedPagosCount = () => {
-      return selectedPagos.filter((item) => item.selected).length
-    }
-  
-  
-  
-  
-  
-    const handleContinueToPayment = () => {
-      const selectedCount = getselectedPagosCount()
-      if (selectedCount === 0) {
-        setError("Debes seleccionar al menos una deuda para continuar")
-        return
-      }
-      setError("")
-      setCurrentStep("payment-details")
-    }
-  */
-
-  async function processPayment(
-    num_con: string,
-    selectedPagoss: { id_deuda: string; amount: number; deuda: deuda }[],
-    paymentMethod: "efectivo" | "yape" | "transferencia",
-    receiptType: "boleta" | "factura" | "recibo",
-    id_usuario: string,
-  ): Promise<{ success: boolean; cod_comprobante: string; error?: string }> {
-    try {
-      const totalAmount = selectedPagoss.reduce((sum, item) => sum + Number(item.amount), 0);
-
-      // Obtener tipo
-      let id_tipo_com: number;
-      if (receiptType === "boleta") id_tipo_com = 1;
-      else if (receiptType === "factura") id_tipo_com = 2;
-      else if (receiptType === "recibo") id_tipo_com = 3;
-      else throw new Error("Tipo de comprobante inválido");
-
-      // Obtener serie y correlativo
-      const { serie, numero } = await generarNumeroComprobante(id_tipo_com);
-      const cod_comprobante = `${serie}-${numero}`;
-
-      await GuardarPago(
-        {
-          id_tipo_compro: id_tipo_com.toString(),
-          serie,
-          correlativo: numero,
-          monto_total: totalAmount,
-          medio_pago: paymentMethod,
-          num_con,
-          id_user: id_usuario,
-        },
-        selectedPagoss.map((item) => ({
-          ...item,
-          id_deuda: item.deuda.id_deuda || "",
-          descripcion: item.deuda.descripcion || "",
-          ano_mes: item.deuda.ano_mes || "",
-          monto: Number(item.amount),
-        }))
-      );
-
-      fetchDeudas();
-      fetchPagos();
-
-      return { success: true, cod_comprobante };
-    } catch (error) {
-      console.error("Error en processPayment:", error);
-      return { success: false, cod_comprobante: "", error: "Error al procesar el pago" };
-    }
-  }
-
-  async function GuardarPago(pago: any, detalle: any[]) {
-    try {
-      const res = await fetch("/api/caja/agregar_pago", {
-        method: "POST",
-        body: JSON.stringify({
-          ...pago,
-          detallePago: detalle.map((item) => ({
-            id_deuda: item.id_deuda,
-            descripcion: item.descripcion,
-            ano_mes: item.ano_mes,
-            monto: item.monto,
-          })),
-        }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-      if (data.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      // Limpieza
-      setNewPago({
-        id_tipo_compro: "",
-        serie: "",
-        correlativo: 0,
-        monto_total: 0,
-        medio_pago: "",
-        num_con: "",
-        id_user: id_user,
-      });
-      setDetallePago([]);
-
-    } catch (error) {
-      toast.error("Error inesperado al guardar pago");
-      console.error("Error al registrar el pago:", error);
-    }
-  }
-
-  async function generarNumeroComprobante(id_tipo: number): Promise<{ serie: string; numero: string }> {
-    try {
-      const res = await fetch(`/api/caja/numeroComprobante?id_tipo=${id_tipo}`);
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error?.error || "Error al obtener numero de comprobante");
-      }
-
-      const { serie, numero } = await res.json();
-
-      return { serie, numero }; // Ejemplo: B001-00012
-    } catch (error) {
-      console.error("Error generando número de comprobante:", error);
-      return { serie: "ERROR", numero: "00000000" }; // Puedes lanzar error o retornar algo más útil según el caso
-    }
-  }
-  /*
-    const handleProcessPayment = async () => {
-      setIsProcessing(true)
-      setError("")
-  
-      try {
-        const selectedItems = selectedPagos
-          .filter((item) => item.selected)
-          .map((item) => ({
-            id_deuda: item.deu.id_deuda.toString(),
-            amount: item.amountToPay,
-            deuda: item.deu
-          }))
-  
-        const result = await processPayment(
-          selectedClient!.num_con,
-          selectedItems,
-          paymentMethod,
-          receiptType,
-          id_user,
-        );
-  
-        if (result.success && result.cod_comprobante) {
-          // Esperar a que se carguen los pagos frescos
-          const res = await fetch("/api/caja/pagos");
-          const data: pagos[] = await res.json();
-  
-          const numero_comprobante = result.cod_comprobante;
-  
-          // Buscar el pago en los datos recién obtenidos
-          const pago_realizado = data.find((pago) => pago.cod_comprobante === numero_comprobante) || null;
-  
-          // Actualizar estados
-          setPagos(data);
-          setpagoProcesado(pago_realizado);
-          setCurrentStep("confirmation");
-        } else {
-          setError(result.error || "Error al procesar el pago");
-        }
-      } catch (err) {
-        setError("Error inesperado al procesar el pago")
-      } finally {
-        setIsProcessing(false)
-      }
-    }
-  */
-  const handleNewPayment = () => {
-    setCurrentStep("search")
-    setSelectedClient(null)
-    setSelectedPagos([])
-    setPaymentMethod("efectivo")
-    setReceiptType("boleta")
-    setpagoProcesado(null)
-    setError("")
-    setSearchQuery("")
-  }
 
   const resetearselectedPagos = () => {
     const updated = selectedPagos.map((deuda) => ({
@@ -900,7 +596,8 @@ export default function ClientsPage() {
                       </td>
                       <td className="px-4 py-2">
                         {pago.fecha_emision.toString().replace("T", " ").replace(".000Z", "")}
-                      </td>                      <td className="px-4 py-2 capitalize">{pago.medio_pago}</td>
+                      </td>                      
+                      <td className="px-4 py-2 capitalize">{pago.medio_pago}</td>
                       <td className="px-4 py-2 font-semibold text-green-400">
                         S/ {pago.monto_total}
                       </td>

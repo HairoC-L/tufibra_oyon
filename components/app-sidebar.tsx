@@ -72,7 +72,16 @@ export function AppSidebar() {
             url: "/clients",
             icon: Users,
           },
-
+          {
+            title: "Cobranza",
+            url: "/cobranza",
+            icon: DollarSign,
+          },
+          /*{
+            title: "Órdenes de Trabajo",
+            url: "/orders",
+            icon: FileText,
+          },*/
           {
             title: "Gestión de Técnicos",
             url: "/technicians",
@@ -84,15 +93,11 @@ export function AppSidebar() {
             icon: SquareUser,
           },
           {
-            title: "Cobranza",
-            url: "/cobranza",
-            icon: DollarSign,
-          },
-          {
             title: "Distribución",
             url: "/distribucion",
             icon: Map,
           },
+          
           /*{
             title: "Usuarios",
             url: "/usuarios",
