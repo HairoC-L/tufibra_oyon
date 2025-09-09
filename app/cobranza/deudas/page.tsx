@@ -23,18 +23,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ReceiptPreview } from "@/components/receipt-preview"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 
 import { toast } from 'react-toastify';
 
-type tipo_comprobante = {
-  id_tipo: number
-  tipo: string
-}
 
 type deuda = {
   id_deuda: number
@@ -47,63 +39,6 @@ type deuda = {
   estado: string
 }
 
-type detallePago = {
-  id_deuda: number
-  ano_mes: string
-  descripcion: string
-  monto: number
-  saldo_pendiente: number
-  fecha_creacion: Date
-  num_con: string
-  estado: string
-}
-
-interface Debt {
-  id: string
-  customerId: string
-  serviceId: string
-  amount: number
-  dueDate: Date
-  month: string // "2024-01", "2024-02", etc.
-  year: number
-  status: "pending" | "partial" | "paid" | "overdue"
-  remainingAmount: number
-  description: string
-}
-
-interface Service {
-  id: string
-  customerId: string
-  type: "cable" | "internet" | "combo"
-  plan: string
-  monthlyAmount: number
-  installationDate: Date
-  status: "active" | "suspended" | "cancelled"
-}
-
-interface Customer {
-  id: string
-  name: string
-  email: string
-  phone: string
-  address: string
-  dni: string
-  services: Service[]
-  createdAt: Date
-  status: "active" | "inactive" | "suspended"
-}
-interface Payment {
-  id: string
-  customerId: string
-  debtIds: string[]
-  amount: number
-  paymentMethod: "efectivo" | "yape" | "transferencia"
-  receiptType: "boleta" | "factura" | "recibo"
-  receiptNumber: string
-  paymentDate: Date
-  cashierId: string
-  notes?: string
-}
 
 interface Client {
   cli_id: string
@@ -124,62 +59,10 @@ interface Client {
   usu_nombre: string
   id_tipo_comprobante: number
 }
-interface Payment {
-  id: string
-  customerId: string
-  debtIds: string[]
-  amount: number
-  paymentMethod: "efectivo" | "yape" | "transferencia"
-  receiptType: "boleta" | "factura" | "recibo"
-  receiptNumber: string
-  paymentDate: Date
-  cashierId: string
-  notes?: string
-}
 
-interface pagos {
-  cod_comprobante: string
-  id_tipo_comprobante: string
-  serie: string
-  correlativo: number
-  fecha_emision: Date
-  monto_total: number
-  medio_pago: "efectivo" | "yape" | "transferencia"
-  estado: string
-  num_con: string
-  id_per_oficina: string
-  duedas_ids: string[]
-}
-
-interface Receipt {
-  id: string
-  paymentId: string
-  type: "boleta" | "factura" | "recibo"
-  number: string
-  customer: Customer
-  items: ReceiptItem[]
-  subtotal: number
-  tax: number
-  total: number
-  paymentMethod: string
-  issuedAt: Date
-  cashier: string
-}
-
-interface ReceiptItem {
-  description: string
-  amount: number
-  month: string
-  service: string
-}
 
 type PaymentStep = "search" | "select-debts" | "payment-details" | "confirmation"
 
-interface SelectedDebt {
-  debt: Debt
-  amountToPay: number
-  selected: boolean
-}
 
 interface SelectedDeudas {
   deu: deuda
@@ -207,15 +90,7 @@ const años = [2025, 2026];
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
-  const [tipo_comrprobante, setTipoComprobante] = useState<tipo_comprobante[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [openModal, setOpenModal] = useState(false);
-
   const [deudas, setDeudas] = useState<deuda[]>([])
-
-  const [pagos, setPagos] = useState<pagos[]>([])
-  const [detallePago, setDetallePago] = useState<detallePago[]>([]);
   const [id_user, setIdUser] = useState("");
   const [userRole, setUserRole] = useState("");
 
@@ -225,17 +100,6 @@ export default function ClientsPage() {
 
   const [loadingActivo, setLoadingActivo] = useState(false);
   const [loadingCortado, setLoadingCortado] = useState(false);
-
-  const [showDetalleComprobante, setShowDetalleComprobante] = useState(false);
-  const [newPago, setNewPago] = useState({
-    id_tipo_compro: "",
-    serie: "",
-    correlativo: 0,
-    monto_total: 0,
-    medio_pago: "EFECTIVO",
-    num_con: "",
-    id_user: id_user,
-  })
 
   const generarDeuda = async () => {
     try {
@@ -284,34 +148,23 @@ export default function ClientsPage() {
     }
   };
   //Carga de deudas
-  const fetchDeudas = async () => {
+  const fetchDeudas = async (): Promise<deuda[]> => {
     try {
       const res = await fetch("/api/caja/deudasTodo");
       if (!res.ok) {
         console.error("Error al obtener información de las deudas:", res.status);
-        return;
+        return [];
       }
       const data = await res.json();
-      setDeudas(data);
+      setDeudas(data); // sigue actualizando el estado global
+      return data;
     } catch (err) {
       console.error("Error parsing JSON:", err);
+      return [];
     }
   };
 
-  //Carga de pagos
-  const fetchPagos = async () => {
-    try {
-      const res = await fetch("/api/caja/pagos");
-      if (!res.ok) {
-        console.error("Error al obtener información de los pagos:", res.status);
-        return;
-      }
-      const data = await res.json();
-      setPagos(data);
-    } catch (err) {
-      console.error("Error parsing JSON:", err);
-    }
-  };
+
 
   useEffect(() => {
     fetchClients();
@@ -319,57 +172,15 @@ export default function ClientsPage() {
     setUserRole(localStorage.getItem("userRole") || "")
   }, []);
 
-
-  //Carga de tipos de comprobante
-  useEffect(() => {
-    const fetchTipoComprobante = async () => {
-      try {
-        const res = await fetch("/api/tipoComprobante")
-        const data = await res.json()
-        setTipoComprobante(data)
-      } catch (err) {
-        console.error("Error al cargar tipos de comprobante:", err)
-      }
-    }
-    fetchTipoComprobante()
-  }, [])
-
-
-
-
-
   useEffect(() => {
     const storedId = localStorage.getItem("userId") || "";
     setIdUser(storedId);
   }, []);
 
-  useEffect(() => {
-    if (id_user) {
-      setNewPago((prev) => ({
-        ...prev,
-        id_user: id_user,
-      }));
-    }
-  }, [id_user]);
-
   const searchParams = useSearchParams()
-  const preselectedCustomerId = searchParams.get("customer")
-  const receiptRef = useRef<HTMLDivElement>(null)
-
   const [currentStep, setCurrentStep] = useState<PaymentStep>("search")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  const [selectedDebts, setSelectedDebts] = useState<SelectedDebt[]>([])
-  const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "yape" | "transferencia">("efectivo")
-  const [receiptType, setReceiptType] = useState<"boleta" | "factura" | "recibo">("boleta")
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [processedPayment, setProcessedPayment] = useState<Payment | null>(null)
-  const [pagoProcesado, setpagoProcesado] = useState<pagos | null>(null)
-
-  const [error, setError] = useState("")
-
-
-  const [editingDeuda, setEditingDeuda] = useState(null)
+  const [editingDeuda, setEditingDeuda] = useState<SelectedDeudas | null>(null)
   const [editedData, setEditedData] = useState({ monto: "", saldo_pendiente: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -377,6 +188,11 @@ export default function ClientsPage() {
   const clientes_filtrados = searchClientes(searchQuery)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [selectedDeudas, setSelectedDeudas] = useState<SelectedDeudas[]>([])
+
+
+  const [anularDialog, setAnularDialog] = useState<{ open: boolean, deudaId: number | null }>({ open: false, deudaId: null });
+  const [editDialog, setEditDialog] = useState<{ open: boolean, motivo: string }>({ open: false, motivo: "" });
+
 
   // Cargar deudas cuando se selecciona un cliente
   useEffect(() => {
@@ -399,28 +215,9 @@ export default function ClientsPage() {
       .sort((a, b) => new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime())
   }
 
-  const handleCustomerSelect = (customer: Customer) => {
-    setSelectedCustomer(customer)
-    setCurrentStep("select-debts")
-    setError("")
-  }
-
   const handleClienteSelect = (cliente: Client) => {
     setSelectedClient(cliente)
     setCurrentStep("select-debts")
-    setError("")
-  }
-
-  //deudas nuevo
-  const handleDeudaSelection = (index: number, selected: boolean) => {
-    const updated = [...selectedDeudas]
-    updated[index].selected = selected
-    if (selected) {
-      updated[index].amountToPay = updated[index].deu.saldo_pendiente;
-    } else {
-      updated[index].amountToPay = 0;
-    }
-    setSelectedDeudas(updated)
   }
 
 
@@ -433,256 +230,98 @@ export default function ClientsPage() {
     })
   }
 
+  const confirmarAnulacion = async () => {
+    if (!anularDialog.deudaId || !editDialog.motivo.trim()) {
+      toast.warning("Debes ingresar un motivo");
+      return;
+    }
 
-  const handleAnularClick = async (deudaId: any) => {
     try {
       const res = await fetch("/api/caja/modificarDeuda", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id_deuda: deudaId,
-          estado: "ANULADO"
+          id_deuda: anularDialog.deudaId,
+          estado: "ANULADO",
+          id_user,
+          motivo: editDialog.motivo
         })
-      })
+      });
 
-      if (!res.ok) throw new Error("Error al anular la deuda")
+      if (!res.ok) throw new Error("Error al anular la deuda");
 
-      alert("Deuda anulada correctamente")
-      // Aquí podrías actualizar el estado o recargar datos
+      toast.success("Deuda anulada correctamente");
+      setAnularDialog({ open: false, deudaId: null });
+      setEditDialog({ open: false, motivo: "" });
+      const data = await fetchDeudas();
+      if (selectedClient) {
+        const nuevas = data
+          .filter((deu) => deu.num_con === selectedClient.num_con)
+          .filter((deu) => deu.estado !== "PAGADO" && deu.estado !== "ANULADO")
+          .map((deu) => ({
+            deu: { ...deu },
+            amountToPay: deu.monto,
+            selected: false,
+          }));
+
+        setSelectedDeudas(nuevas);
+      }
+
     } catch (error) {
-      console.error(error)
-      alert("Error al anular la deuda")
+      console.error(error);
+      toast.error("Error al anular la deuda");
     }
-  }
-
-  const handleSaveDeuda = async () => {
-    setIsSubmitting(true)
-    /*try {
-      const res = await fetch("/api/caja/modificarDeuda", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          id_deuda: editingDeuda!.id_deuda,
-          monto: parseFloat(editedData.monto),
-          saldo_pendiente: parseFloat(editedData.saldo_pendiente)
-        })
-      })
-  
-      if (!res.ok) throw new Error("Error al modificar la deuda")
-  
-      alert("Deuda modificada correctamente")
-      setEditingDeuda(null)
-      // Aquí podrías actualizar el estado o recargar datos
-    } catch (error) {
-      console.error(error)
-      alert("Error al modificar la deuda")
-    } finally {
-      setIsSubmitting(false)
-    }*/
-  }
-
-
-
-  const handleMontoChange = (index: number, amount: number) => {
-    const updated = [...selectedDeudas]
-    const maxAmount = updated[index].deu.saldo_pendiente
-    updated[index].amountToPay = Math.min(Math.max(0, amount), maxAmount)
-    setSelectedDeudas(updated)
-  }
-
-  const getSelectedDeudasTotal = () => {
-    return selectedDeudas
-      .filter((item) => item.selected)
-      .reduce((sum, item) => sum + Number(item.amountToPay || 0), 0);
   };
 
-
-  const getSelectedDeudasCount = () => {
-    return selectedDeudas.filter((item) => item.selected).length
-  }
-
-
-
-
-
-  const handleContinueToPayment = () => {
-    const selectedCount = getSelectedDeudasCount()
-    if (selectedCount === 0) {
-      setError("Debes seleccionar al menos una deuda para continuar")
-      return
+  const handleSaveDeuda = async () => {
+    if (!editDialog.motivo.trim()) {
+      toast.warning("Debes ingresar un motivo");
+      return;
     }
-    setError("")
-    setCurrentStep("payment-details")
-  }
 
+    setIsSubmitting(true);
 
-  async function processPayment(
-    num_con: string,
-    selectedDeudass: { id_deuda: string; amount: number; deuda: deuda }[],
-    paymentMethod: "efectivo" | "yape" | "transferencia",
-    receiptType: "boleta" | "factura" | "recibo",
-    id_usuario: string,
-  ): Promise<{ success: boolean; cod_comprobante: string; error?: string }> {
     try {
-      const totalAmount = selectedDeudass.reduce((sum, item) => sum + Number(item.amount), 0);
-
-      // Obtener tipo
-      let id_tipo_com: number;
-      if (receiptType === "boleta") id_tipo_com = 1;
-      else if (receiptType === "factura") id_tipo_com = 2;
-      else if (receiptType === "recibo") id_tipo_com = 3;
-      else throw new Error("Tipo de comprobante inválido");
-
-      // Obtener serie y correlativo
-      const { serie, numero } = await generarNumeroComprobante(id_tipo_com);
-      const cod_comprobante = `${serie}-${numero}`;
-
-      await GuardarPago(
-        {
-          id_tipo_compro: id_tipo_com.toString(),
-          serie,
-          correlativo: numero,
-          monto_total: totalAmount,
-          medio_pago: paymentMethod,
-          num_con,
-          id_user: id_usuario,
-        },
-        selectedDeudass.map((item) => ({
-          ...item,
-          id_deuda: item.deuda.id_deuda || "",
-          descripcion: item.deuda.descripcion || "",
-          ano_mes: item.deuda.ano_mes || "",
-          monto: Number(item.amount),
-        }))
-      );
-
-      fetchDeudas();
-      fetchPagos();
-
-      return { success: true, cod_comprobante };
-    } catch (error) {
-      console.error("Error en processPayment:", error);
-      return { success: false, cod_comprobante: "", error: "Error al procesar el pago" };
-    }
-  }
-
-  async function GuardarPago(pago: any, detalle: any[]) {
-    try {
-      const res = await fetch("/api/caja/agregar_pago", {
+      const res = await fetch("/api/caja/modificarDeuda", {
         method: "POST",
-        body: JSON.stringify({
-          ...pago,
-          detallePago: detalle.map((item) => ({
-            id_deuda: item.id_deuda,
-            descripcion: item.descripcion,
-            ano_mes: item.ano_mes,
-            monto: item.monto,
-          })),
-        }),
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_deuda: editingDeuda!.deu.id_deuda,
+          monto: parseFloat(editedData.monto),
+          saldo_pendiente: parseFloat(editedData.saldo_pendiente),
+          id_user,
+          motivo: editDialog.motivo
+        })
       });
 
-      const data = await res.json();
-      if (data.error) {
-        toast.error(data.error);
-        return;
+      if (!res.ok) throw new Error("Error al modificar la deuda");
+
+      toast.success("Deuda modificada correctamente");
+      setEditingDeuda(null);
+      setEditDialog({ open: false, motivo: "" });
+
+      const data = await fetchDeudas();
+      if (selectedClient) {
+        const nuevas = data
+          .filter((deu) => deu.num_con === selectedClient.num_con)
+          .filter((deu) => deu.estado !== "PAGADO" && deu.estado !== "ANULADO")
+          .map((deu) => ({
+            deu: { ...deu },
+            amountToPay: deu.monto,
+            selected: false,
+          }));
+
+        setSelectedDeudas(nuevas);
       }
 
-      // Limpieza
-      setNewPago({
-        id_tipo_compro: "",
-        serie: "",
-        correlativo: 0,
-        monto_total: 0,
-        medio_pago: "",
-        num_con: "",
-        id_user: id_user,
-      });
-      setDetallePago([]);
 
     } catch (error) {
-      toast.error("Error inesperado al guardar pago");
-      console.error("Error al registrar el pago:", error);
-    }
-  }
-
-  async function generarNumeroComprobante(id_tipo: number): Promise<{ serie: string; numero: string }> {
-    try {
-      const res = await fetch(`/api/caja/numeroComprobante?id_tipo=${id_tipo}`);
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error?.error || "Error al obtener numero de comprobante");
-      }
-
-      const { serie, numero } = await res.json();
-
-      return { serie, numero }; // Ejemplo: B001-00012
-    } catch (error) {
-      console.error("Error generando número de comprobante:", error);
-      return { serie: "ERROR", numero: "00000000" }; // Puedes lanzar error o retornar algo más útil según el caso
-    }
-  }
-
-  const handleProcessPayment = async () => {
-    setIsProcessing(true)
-    setError("")
-
-    try {
-      const selectedItems = selectedDeudas
-        .filter((item) => item.selected)
-        .map((item) => ({
-          id_deuda: item.deu.id_deuda.toString(),
-          amount: item.amountToPay,
-          deuda: item.deu
-        }))
-
-      const result = await processPayment(
-        selectedClient!.num_con,
-        selectedItems,
-        paymentMethod,
-        receiptType,
-        id_user,
-      );
-
-      if (result.success && result.cod_comprobante) {
-        // Esperar a que se carguen los pagos frescos
-        const res = await fetch("/api/caja/pagos");
-        const data: pagos[] = await res.json();
-
-        const numero_comprobante = result.cod_comprobante;
-
-        // Buscar el pago en los datos recién obtenidos
-        const pago_realizado = data.find((pago) => pago.cod_comprobante === numero_comprobante) || null;
-
-        // Actualizar estados
-        setPagos(data);
-        setpagoProcesado(pago_realizado);
-        setCurrentStep("confirmation");
-      } else {
-        setError(result.error || "Error al procesar el pago");
-      }
-    } catch (err) {
-      setError("Error inesperado al procesar el pago")
+      console.error(error);
+      toast.error("Error al modificar la deuda");
     } finally {
-      setIsProcessing(false)
+      setIsSubmitting(false);
     }
-  }
-
-  const handleNewPayment = () => {
-    setCurrentStep("search")
-    setSelectedClient(null)
-    setSelectedDeudas([])
-    setPaymentMethod("efectivo")
-    setReceiptType("boleta")
-    setpagoProcesado(null)
-    setError("")
-    setSearchQuery("")
-  }
+  };
 
   const resetearSelectedDeudas = () => {
     const updated = selectedDeudas.map((deuda) => ({
@@ -693,9 +332,6 @@ export default function ClientsPage() {
 
     setSelectedDeudas(updated);
   };
-
-
-
 
   const handleDownload = async (estado: "activo" | "cortado") => {
     const setLoading = estado === "activo" ? setLoadingActivo : setLoadingCortado;
@@ -902,11 +538,12 @@ export default function ClientsPage() {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleAnularClick(deuda.deu.id_deuda)}
+                          onClick={() => setAnularDialog({ open: true, deudaId: deuda.deu.id_deuda })}
                         >
                           <XCircle className="h-4 w-4 mr-1" />
                           Anular
                         </Button>
+
                       </td>
                     </tr>
                   ))}
@@ -940,12 +577,24 @@ export default function ClientsPage() {
                     className="bg-gray-700 text-white border-gray-500"
                   />
                 </div>
+
+                <div>
+                  <Label>Motivo de la modificación</Label>
+                  <Textarea
+                    value={editDialog.motivo}
+                    onChange={(e) => setEditDialog({ ...editDialog, motivo: e.target.value })}
+                    className="bg-gray-700 text-white border-gray-500"
+                  />
+                </div>
+
               </div>
               <DialogFooter className="mt-4">
                 <Button onClick={() => setEditingDeuda(null)} variant="ghost">
                   Cancelar
                 </Button>
-                <Button onClick={handleSaveDeuda} disabled={isSubmitting}>
+                <Button
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 text-white hover:to-blue-700 transition"
+                  onClick={handleSaveDeuda} disabled={isSubmitting}>
                   {isSubmitting ? "Guardando..." : "Guardar"}
                 </Button>
               </DialogFooter>
@@ -1043,24 +692,24 @@ export default function ClientsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-row items-end gap-4 justify-center">
-      <Button
-        onClick={() => handleDownload("activo")}
-        disabled={loadingActivo}
-        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
-      >
-        <Download className="w-4 h-4" />
-        {loadingActivo ? "Generando..." : "Activos con deuda"}
-      </Button>
+                    <Button
+                      onClick={() => handleDownload("activo")}
+                      disabled={loadingActivo}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      {loadingActivo ? "Generando..." : "Activos con deuda"}
+                    </Button>
 
-      <Button
-        onClick={() => handleDownload("cortado")}
-        disabled={loadingCortado}
-        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
-      >
-        <Download className="w-4 h-4" />
-        {loadingCortado ? "Generando..." : "Cortados con deuda"}
-      </Button>
-    </div>
+                    <Button
+                      onClick={() => handleDownload("cortado")}
+                      disabled={loadingCortado}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      {loadingCortado ? "Generando..." : "Cortados con deuda"}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1117,6 +766,29 @@ export default function ClientsPage() {
                       {/* Step Content */}
                       {currentStep === "search" && renderSearchStep()}
                       {currentStep === "select-debts" && renderSelectDebtsStep()}
+
+
+                      <Dialog open={anularDialog.open} onOpenChange={(open) => setAnularDialog({ ...anularDialog, open })}>
+                        <DialogContent className="bg-gray-800 border border-gray-600 text-white">
+                          <DialogHeader>
+                            <DialogTitle>Confirmar Anulación</DialogTitle>
+                            <DialogDescription className="text-gray-300">Ingresa el motivo de la anulación</DialogDescription>
+                          </DialogHeader>
+                          <Textarea
+                            placeholder="Motivo de la anulación"
+                            value={editDialog.motivo}
+                            onChange={(e) => setEditDialog({ ...editDialog, motivo: e.target.value })}
+                            className="bg-gray-700 text-white border-gray-600"
+                          />
+                          <DialogFooter className="mt-4">
+                            <Button onClick={() => setAnularDialog({ open: false, deudaId: null })} variant="ghost">Cancelar</Button>
+                            <Button 
+                          className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 text-white hover:to-blue-700 transition"
+                            onClick={confirmarAnulacion}>Confirmar</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
                     </CardContent>
                   </Card>
                 </>

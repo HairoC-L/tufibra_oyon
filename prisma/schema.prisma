@@ -9,42 +9,41 @@ datasource db {
 }
 
 model cliente {
-  cli_id         String          @id @db.Char(8)
-  cli_nombre     String?         @db.VarChar(250)
-  cli_apellido   String?         @db.VarChar(250)
-  cli_tipo       String          @default("") @db.VarChar(50)
-  cli_razonsoci  String?         @db.VarChar(250)
-  cli_dni        String?         @db.Char(8)
-  cli_ruc        String?         @db.Char(20)
-  cli_direccion  String          @db.VarChar(250)
-  cli_coordenada String          @db.VarChar(250)
-  cli_cel        String          @db.Char(15)
-  cli_estado     String          @default("ACTIVO") @db.VarChar(45)
+  cli_id         String     @id @db.Char(8)
+  cli_nombre     String?    @db.VarChar(250)
+  cli_apellido   String?    @db.VarChar(250)
+  cli_tipo       String     @default("") @db.VarChar(50)
+  cli_razonsoci  String?    @db.VarChar(250)
+  cli_dni        String?    @db.Char(8)
+  cli_ruc        String?    @db.Char(20)
+  cli_direccion  String     @db.VarChar(250)
+  cli_coordenada String     @db.VarChar(250)
+  cli_cel        String     @db.Char(15)
+  cli_estado     String     @default("ACTIVO") @db.VarChar(45)
   contrato       contrato[]
-  orden_trabajo  orden_trabajo[]
 }
 
 model orden_trabajo {
   ord_id                 BigInt           @id @default(autoincrement())
   ord_descripcion        String?          @db.VarChar(500)
-  ord_fecha_creacion     DateTime?        @db.DateTime(0)
+  ord_fecha_creacion     DateTime?        @default(dbgenerated("(now())")) @db.DateTime(0)
   ord_fecha_asignacion   DateTime?        @db.DateTime(0)
   ord_fecha_finalizacion DateTime?        @db.DateTime(0)
   ord_estado             Int?             @db.SmallInt
   ord_prioridad          String?          @db.VarChar(45)
   tec_id                 Int
   per_id                 Int
-  cli_id                 String           @default("") @db.Char(8)
   tip_id                 Int
-  cliente                cliente          @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_orden_trabajo_cliente")
+  num_con                String?          @db.Char(10)
+  contrato               contrato?        @relation(fields: [num_con], references: [num_con], onDelete: NoAction, onUpdate: NoAction, map: "FK_orden_trabajo_contrato")
   personal_oficina       personal_oficina @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_orden_trabajo_personal_oficina")
   tecnico                tecnico          @relation(fields: [tec_id], references: [tec_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_orden_trabajo_tecnico")
   tipo_trabajo           tipo_trabajo     @relation(fields: [tip_id], references: [tip_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tip_id_trabajo")
 
-  @@index([cli_id], map: "fk_orden_trabajo_cliente1_idx")
   @@index([per_id], map: "fk_orden_trabajo_personal_oficina1_idx")
   @@index([tec_id], map: "fk_orden_trabajo_tecnico1_idx")
   @@index([tip_id], map: "fk_orden_trabajo_tipo_trabajo1_idx")
+  @@index([num_con], map: "FK_orden_trabajo_contrato")
 }
 
 model personal_oficina {
@@ -83,19 +82,20 @@ model tipo_trabajo {
 }
 
 model usuario {
-  usu_id           Int                @id @default(autoincrement())
-  usu_nombre       String?            @db.VarChar(250)
-  usu_dni          String?            @db.Char(8)
-  usu_correo       String?            @db.VarChar(100)
-  usu_cel          String?            @db.VarChar(20)
-  usu_usuario      String?            @db.VarChar(100)
-  usu_contrasena   String?            @db.VarChar(300)
-  usu_rol          String?            @db.VarChar(45)
-  usu_fecha        DateTime?          @db.Date
-  usu_estado       Int?               @db.SmallInt
-  contrato         contrato[]
-  personal_oficina personal_oficina[]
-  tecnico          tecnico[]
+  usu_id            Int                 @id @default(autoincrement())
+  usu_nombre        String?             @db.VarChar(250)
+  usu_dni           String?             @db.Char(8)
+  usu_correo        String?             @db.VarChar(100)
+  usu_cel           String?             @db.VarChar(20)
+  usu_usuario       String?             @db.VarChar(100)
+  usu_contrasena    String?             @db.VarChar(300)
+  usu_rol           String?             @db.VarChar(45)
+  usu_fecha         DateTime?           @db.Date
+  usu_estado        Int?                @db.SmallInt
+  contrato          contrato[]
+  historial_cambios historial_cambios[]
+  personal_oficina  personal_oficina[]
+  tecnico           tecnico[]
 }
 
 model especialidad {
@@ -176,6 +176,7 @@ model contrato {
   tipo_comprobante    tipo_comprobante?  @relation(fields: [id_tipo_comprobante], references: [id_tipo], onDelete: NoAction, onUpdate: NoAction, map: "FK_contrato_tipo_comprobante")
   usuario             usuario?           @relation(fields: [id_user], references: [usu_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_contrato_usuario")
   deuda               deuda[]
+  orden_trabajo       orden_trabajo[]
 
   @@index([id_cli], map: "FK_contrato_cliente")
   @@index([id_serv], map: "FK_contrato_servicio")
@@ -261,4 +262,18 @@ model deuda {
 
   @@index([num_con], map: "FK_deuda_contrato")
   @@index([id_servicio], map: "FK_deuda_servicio")
+}
+
+model historial_cambios {
+  id          Int       @id @default(autoincrement())
+  tabla       String?   @db.VarChar(50)
+  id_cod      String?   @db.VarChar(50)
+  accion      String?   @db.VarChar(100)
+  descripcion String?   @db.VarChar(250)
+  detalle     String?   @db.VarChar(500)
+  fecha       DateTime? @default(dbgenerated("(now())")) @db.DateTime(0)
+  id_usuario  Int?
+  usuario     usuario?  @relation(fields: [id_usuario], references: [usu_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_historial_cambios_usuario")
+
+  @@index([id_usuario], map: "FK_historial_cambios_usuario")
 }
