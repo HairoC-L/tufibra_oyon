@@ -229,32 +229,41 @@ export default function ClientsPage() {
                 <DialogTitle>Cajas de {showCajas?.nombre}</DialogTitle>
                 <DialogDescription>Listado de cajas relacionadas</DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {cajas
-                  .filter((c) => c.id_nodo === showCajas?.id_nodo)
-                  .map((c) => (
-                    <Card
-                      key={c.id_caja}
-                      className="bg-gray-800/50 border-gray-700 hover:shadow-lg hover:scale-105 transition-transform"
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-white">{c.nombre}</CardTitle>
-                        <CardDescription className="text-gray-400">{c.descripcion}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700"
-                          onClick={() => setEditCaja(c)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" /> Editar
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
+
+              {/* Tabla para pantallas grandes y pequeñas */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-auto">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-300">Nombre</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-300">Descripción</th>
+                      <th className="px-4 py-2 text-left text-sm font-semibold text-gray-300">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cajas
+                      .filter((c) => c.id_nodo === showCajas?.id_nodo)
+                      .map((c) => (
+                        <tr key={c.id_caja} className="border-t border-gray-700">
+                          <td className="px-4 py-2 text-sm text-white">{c.nombre}</td>
+                          <td className="px-4 py-2 text-sm text-gray-400">{c.descripcion}</td>
+                          <td className="px-4 py-2">
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700"
+                              onClick={() => setEditCaja(c)}
+                            >
+                              <Edit className="w-4 h-4 mr-1" /> Editar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </DialogContent>
           </Dialog>
+
 
           {/* MODAL EDITAR CAJA */}
           <Dialog open={!!editCaja} onOpenChange={() => setEditCaja(null)}>

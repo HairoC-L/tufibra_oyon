@@ -253,12 +253,13 @@ model deuda {
   descripcion     String?   @db.VarChar(150)
   monto           Decimal?  @db.Decimal(10, 2)
   saldo_pendiente Decimal?  @db.Decimal(10, 2)
-  fecha_creacion  DateTime? @db.Date
+  fecha_creacion  DateTime? @default(dbgenerated("(now())")) @db.Date
   estado          String?   @db.VarChar(50)
-  id_servicio     Int
+  id_servicio     Int?
   num_con         String    @db.Char(10)
+  obs             String    @default("") @db.VarChar(250)
   contrato        contrato  @relation(fields: [num_con], references: [num_con], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_contrato")
-  servicio        servicio  @relation(fields: [id_servicio], references: [serv_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_servicio")
+  servicio        servicio? @relation(fields: [id_servicio], references: [serv_id], onDelete: NoAction, onUpdate: NoAction, map: "FK_deuda_servicio")
 
   @@index([num_con], map: "FK_deuda_contrato")
   @@index([id_servicio], map: "FK_deuda_servicio")

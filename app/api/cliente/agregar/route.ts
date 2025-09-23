@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
                 fecha_registro: new Date(),
                 fecha_inicio: new Date(fechaInicio),
                 fecha_fin: null,
-                estado: 1,
+                estado: 2,
                 id_user: parseInt(id_user),
                 tec_id: parseInt(tec_id),
                 id_caja: parseInt(id_caja),
@@ -131,6 +131,37 @@ export async function POST(req: NextRequest) {
             },
         });
 
+
+        const servicio = await prisma.servicio.findUnique({
+            where: { serv_id: parseInt(tipoServicio) },
+            select: {
+                serv_nombre: true,
+                serv_precio: true,
+            },
+        });
+
+        if (!servicio) {
+            return NextResponse.json(
+                { error: "Servicio no encontrado." },
+                { status: 400 }
+            );
+        }
+
+        //Creación de orden de trabajo
+        const ord_trabajo = await prisma.orden_trabajo.create({
+            data: {
+                ord_descripcion: `INSTALACION DE ${servicio.serv_nombre?.toUpperCase()}`,
+                ord_fecha_asignacion: new Date(fechaInicio),
+                ord_fecha_finalizacion: undefined,
+                ord_estado: 1,
+                ord_prioridad: "Alta",
+                tec_id: tec_id,
+                per_id: parseInt(id_user),
+                num_con: num_contrato,
+                tip_id: 1,
+            }
+        });
+        /*
         //////////////CREACION DE DEUDA//////////////////////
         const servicio = await prisma.servicio.findUnique({
             where: { serv_id: parseInt(tipoServicio) },
@@ -206,7 +237,7 @@ export async function POST(req: NextRequest) {
                     },
                 });
             }
-        }
+        }*/
         return NextResponse.json({ cliente });
     } catch (error) {
         console.error("Error al crear cliente:", error);

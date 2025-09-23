@@ -806,12 +806,11 @@ export default function ClientsPage() {
                     <SelectTrigger className="w-48 bg-gray-700/50 border-gray-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="bg-gray-800 border-gray-700 text-gray-200">
                       <SelectItem value="all">Todos los estados</SelectItem>
-                      <SelectItem value="Activo">Activo</SelectItem>
-                      <SelectItem value="Suspendido">Suspendido</SelectItem>
-                      <SelectItem value="Inactivo">Inactivo</SelectItem>
-                      <SelectItem value="Pendiente">Pendiente</SelectItem>
+                      <SelectItem value="1">Activos</SelectItem>
+                      <SelectItem value="0">Cortados</SelectItem>
+                      <SelectItem value="2">Sin info</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -869,7 +868,7 @@ export default function ClientsPage() {
                             ) : client.estado === "0" ? (
                               <Badge className="text-white bg-red-600">CORTADO</Badge>
                             ) : (
-                              <Badge className="text-white bg-gray-500">SUSPENDIDO</Badge>
+                              <Badge className="text-white bg-gray-500">SIN INFO</Badge>
                             )}
                           </TableCell>
 
@@ -946,7 +945,7 @@ export default function ClientsPage() {
                               ? "Activo"
                               : selectedClient.estado === "0"
                                 ? "Cortado"
-                                : "Suspendido"}
+                                : "Sin info"}
                           </Badge>
                         </div>
                       </div>

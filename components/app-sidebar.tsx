@@ -60,7 +60,6 @@ export function AppSidebar() {
       url: "/dashboard",
       icon: Home,
     },
-
   ]
 
   const getAdditionalMenuItems = () => {
@@ -77,11 +76,11 @@ export function AppSidebar() {
             url: "/cobranza",
             icon: DollarSign,
           },
-          /*{
+          {
             title: "Órdenes de Trabajo",
             url: "/orders",
             icon: FileText,
-          },*/
+          },
           {
             title: "Gestión de Técnicos",
             url: "/technicians",
@@ -128,32 +127,27 @@ export function AppSidebar() {
       case "OFICINA":
         return [
           {
+            title: "Clientes",
+            url: "/clients",
+            icon: Users,
+          },
+          {
             title: "Cobranza",
             url: "/cobranza",
             icon: DollarSign,
           },
           {
-            title: "Clientes",
-            url: "/clients",
-            icon: Users,
+            title: "Órdenes de Trabajo",
+            url: "/orders",
+            icon: FileText,
           },
-          /*{
-            title: "Reportes",
-            url: "/reportes",
-            icon: BarChart3,
-          },*/
         ]
       case "TECNICO":
         return [
           {
             title: "Mis Órdenes",
-            url: "/my-orders",
+            url: "/orders/tecnico",
             icon: ClipboardList,
-          },
-          {
-            title: "Calendario",
-            url: "/calendar",
-            icon: Calendar,
           },
         ]
       default:

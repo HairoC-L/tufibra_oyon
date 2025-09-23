@@ -53,7 +53,7 @@ export function Navbar() {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="sm">
-                                        <Menu className="h-4 w-4" />
+                                        <Menu className="h-4 w-4 text-white" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
