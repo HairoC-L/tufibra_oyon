@@ -149,6 +149,16 @@ export function AppSidebar() {
             url: "/orders/tecnico",
             icon: ClipboardList,
           },
+                    {
+            title: "Clientes",
+            url: "/clients",
+            icon: Users,
+          },
+          {
+            title: "Distribución",
+            url: "/distribucion",
+            icon: Map,
+          },
         ]
       default:
         return []

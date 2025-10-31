@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AlertTriangle, Search, Users, TrendingUp, CreditCard, CopyX, Eye, MapPinIcon, BriefcaseIcon, PlusCircle, IdCard } from "lucide-react"
+import { AlertTriangle, Search, TrendingDown, TrendingUp, CreditCard, CopyX, Eye, MapPinIcon, BriefcaseIcon, PlusCircle, IdCard } from "lucide-react"
 import { toast } from 'react-toastify';
 
 
@@ -59,11 +59,17 @@ type deuda = {
   estado: string
 }
 
+type ingresoPrevisto = {
+  mes_ano: string
+  monto: number
+}
+
 export default function ClientsPage() {
 
   const [openModal, setOpenModal] = useState(false);
   const [pagos, setPagos] = useState<pagos[]>([]);
   const [deudas, setDeudas] = useState<deuda[]>([])
+  const [ingresoPrevisto, setIngresoPrevisto] = useState<ingresoPrevisto[]>([])
 
 
   const [detalleAbierto, setDetalleAbierto] = useState(false)
@@ -104,9 +110,24 @@ export default function ClientsPage() {
     }
   };
 
+  //Carga ingreso previsto
+  const fetchIngresoPrevisto = async () => {
+    try {
+      const res = await fetch("/api/caja/ingreso_previsto");
+      if (!res.ok) {
+        toast.error("Error a al obtener datos desde la API")
+      }
+      const data = await res.json();
+      setIngresoPrevisto(data);
+    } catch (err) {
+      toast.error("Error al cargar monto previsto")
+    }
+  };
+
   useEffect(() => {
     fetchDeudas();
     fetchPagos();
+    fetchIngresoPrevisto();
     setUserRole(localStorage.getItem("userRole") || "")
   }, []);
 
@@ -145,7 +166,7 @@ export default function ClientsPage() {
     return p.estado !== "ANULADO" && fechaPago === todayLocal;
   });
 
-  const ingresosHoy = Math.round(pagosHoy.reduce((sum, p) => sum + Number(p.monto_total), 0)*100)/100;
+  const ingresosHoy = Math.round(pagosHoy.reduce((sum, p) => sum + Number(p.monto_total), 0) * 100) / 100;
 
   const ingresosPorMedio = pagosHoy.reduce(
     (acc, p) => {
@@ -244,6 +265,34 @@ export default function ClientsPage() {
 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <Card className="bg-gray-800/50 border-gray-700">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-white">Ingreso Previsto</CardTitle>
+                    </CardHeader>
+                    {ingresoPrevisto.map((item, i) => {
+                      const prev = ingresoPrevisto[i - 1];
+                      const isUp = prev ? item.monto >= prev.monto : null;
+                      const Icon =
+                        isUp === null
+                          ? null
+                          : isUp
+                            ? TrendingUp
+                            : TrendingDown;
+                      const iconColor = isUp ? "text-green-500" : "text-red-600";
+
+                      return (
+                        <CardContent key={i}>
+                          <p className="text-xm flex text-gray-400 gap-6 items-center">
+                            {item.mes_ano}
+                            {Icon && <Icon className={`${iconColor} h-4 w-4`} />}
+                          </p>
+                          <div className="text-2xl font-bold text-blue-500">
+                            S/ {item.monto.toLocaleString()}
+                          </div>
+                        </CardContent>
+                      );
+                    })}
+                  </Card>
                   <Card className="bg-gray-800/50 border-gray-700">
                     <CardHeader>
                       <CardTitle className="flex items-center text-white">

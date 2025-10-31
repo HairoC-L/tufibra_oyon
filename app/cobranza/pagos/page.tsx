@@ -852,12 +852,11 @@ export default function ClientsPage() {
             </style>
           </head>
           <body>
-            <div class="center bold">TU FIBRA DIGITAL S.A.C.</div>
-            <div class="center">AV. HUANUCO - OYON</div>
+            <div class="center bold">CARMONA LEON LUILLY PAOL</div>
+            <div class="center bold">10434642341</div>
+            <div class="center">A.H. SOL NACIENTE MZ. F LT. 01</div>
             <div class="center">Telf: 935671661</div>
-            <div class="center" style="margin-top: 8px;">
-              <img src="/logo_impresion.webp" alt="Logo" width="100" />
-            </div>
+            
             <div class="line"></div>
             <div class="center bold">${tipo_comprobante.toUpperCase()} ELECTRÓNICA</div>
             <div class="center bold">${cod_comprobante}</div>
@@ -893,6 +892,11 @@ export default function ClientsPage() {
             </div>
             <div><strong>Son:</strong> ${montoALetras(Number(monto_total))}</div>
             <div class="center"><strong>Cajero:</strong> ${cajero}</div>
+            <div class="line"></div>
+
+            <div class="center" style="margin-top: 8px;">
+              <img src="/logo_impresion.webp" alt="Logo" width="100" />
+            </div>
           </body>
         </html>
 

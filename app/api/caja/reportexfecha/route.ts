@@ -23,7 +23,9 @@ export async function POST(req: Request) {
                     gte: desdeFecha,
                     lt: hastaFecha, // IMPORTANTE: excluye a las 00:00 del día siguiente
                 },
-                estado: "NORMAL",
+                estado: {
+                    in: ["NORMAL", "ENVIADO"], // ← aquí incluyes ambos estados
+                },
             },
             select: {
                 monto_total: true,

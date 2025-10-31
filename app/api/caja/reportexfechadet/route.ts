@@ -19,7 +19,9 @@ export async function POST(req: Request) {
                     gte: desdeFecha,
                     lt: hastaFecha,
                 },
-                estado: "NORMAL",
+                estado: {
+                    in: ["NORMAL", "ENVIADO"], // ← aquí incluyes ambos estados
+                },
             },
             orderBy: {
                 fecha_emision: "asc",
